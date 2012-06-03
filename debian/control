@@ -1,0 +1,13 @@
+Source: ros-fuerte-opencv2
+Section: misc
+Priority: extra
+Maintainer: Vincent Rabaud <vrabaud@willowgarage.com>
+Build-Depends: debhelper (>= 7.0.50~), libv4l-dev,texlive-latex-base,libjpeg-dev,libavcodec-dev,libavutil-dev,python-numpy,libtiff4-dev,libavformat-dev,libswscale-dev,python-dev,python-support,ros-fuerte-catkin,libjasper-dev,zlib1g-dev,libpng12-dev,libgtk2.0-dev
+Homepage: http://opencv.org
+Standards-Version: 3.9.2
+
+Package: ros-fuerte-opencv2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libv4l-dev,libjpeg-dev,libavcodec-dev,libavutil-dev,python-numpy,libtiff4-dev,libswscale-dev,libgtk2.0-dev,python-support,libavformat-dev,libjasper-dev,zlib1g-dev,libpng12-dev,python-dev
+Description: OpenCV
+
