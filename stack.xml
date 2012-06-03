@@ -31,5 +31,5 @@
   <depends>libtiff4-dev</depends>
   <depends>zlib</depends>
   <depends>libv4l-dev</depends>
-  <build_depends>python</depends>
+  <depends>python</depends>
 </stack>
