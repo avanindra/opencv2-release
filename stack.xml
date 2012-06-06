@@ -32,4 +32,6 @@
   <depends>zlib</depends>
   <depends>libv4l-dev</depends>
   <depends>python</depends>
+
+  <build_type file="bloom/rules.em">custom</build_type>
 </stack>
