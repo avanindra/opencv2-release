@@ -55,16 +55,6 @@
     #include <GL/glu.h>
 #endif
 
-/*#if _MSC_VER >= 1200
-#pragma warning( disable: 4505 )
-#pragma comment(lib,"gtk-win32-2.0.lib")
-#pragma comment(lib,"glib-2.0.lib")
-#pragma comment(lib,"gobject-2.0.lib")
-#pragma comment(lib,"gdk-win32-2.0.lib")
-#pragma comment(lib,"gdk_pixbuf-2.0.lib")
-#endif*/
-
-
 // TODO Fix the initial window size when flags=0.  Right now the initial window is by default
 // 320x240 size.  A better default would be actual size of the image.  Problem
 // is determining desired window size with trackbars while still allowing resizing.
@@ -688,6 +678,8 @@ double cvGetOpenGlProp_GTK(const char* name)
     result = window->useGl;
 
     __END__;
+#else
+    (void)name;
 #endif
 
     return result;
@@ -859,7 +851,7 @@ namespace
         __END__;
     }
 
-    void GlFuncTab_GTK::generateBitmapFont(const std::string& family, int height, int weight, bool italic, bool underline, int start, int count, int base) const
+    void GlFuncTab_GTK::generateBitmapFont(const std::string& family, int height, int weight, bool italic, bool /*underline*/, int start, int count, int base) const
     {
         PangoFontDescription* fontDecr;
         PangoFont* pangoFont;
@@ -1014,6 +1006,8 @@ static gboolean cvImageWidget_expose(GtkWidget* widget, GdkEventExpose* event, g
         drawGl(window);
         return TRUE;
     }
+#else
+    (void)data;
 #endif
 
   CvImageWidget *image_widget;
@@ -1372,17 +1366,17 @@ cvDestroyAllWindows( void )
     CV_UNLOCK_MUTEX();
 }
 
-CvSize icvCalcOptimalWindowSize( CvWindow * window, CvSize new_image_size){
-    CvSize window_size;
-    GtkWidget * toplevel = gtk_widget_get_toplevel( window->frame );
-    gdk_drawable_get_size( GDK_DRAWABLE(toplevel->window),
-            &window_size.width, &window_size.height );
+// CvSize icvCalcOptimalWindowSize( CvWindow * window, CvSize new_image_size){
+//     CvSize window_size;
+//     GtkWidget * toplevel = gtk_widget_get_toplevel( window->frame );
+//     gdk_drawable_get_size( GDK_DRAWABLE(toplevel->window),
+//             &window_size.width, &window_size.height );
 
-    window_size.width = window_size.width + new_image_size.width - window->widget->allocation.width;
-    window_size.height = window_size.height + new_image_size.height - window->widget->allocation.height;
+//     window_size.width = window_size.width + new_image_size.width - window->widget->allocation.width;
+//     window_size.height = window_size.height + new_image_size.height - window->widget->allocation.height;
 
-    return window_size;
-}
+//     return window_size;
+// }
 
 CV_IMPL void
 cvShowImage( const char* name, const CvArr* arr )

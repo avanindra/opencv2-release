@@ -51,16 +51,25 @@
     and png2bmp sample from libpng distribution (Copyright (C) 1999-2001 MIYASAKA Masaru)
 \****************************************************************************************/
 
+#undef HAVE_UNISTD_H //to avoid redefinition
+#ifndef _LFS64_LARGEFILE
+#  define _LFS64_LARGEFILE 0
+#endif
+#ifndef _FILE_OFFSET_BITS
+#  define _FILE_OFFSET_BITS 0
+#endif
+
 #ifdef HAVE_LIBPNG_PNG_H
 #include <libpng/png.h>
 #else
 #include <png.h>
 #endif
 #include <zlib.h>
+
 #include "grfmt_png.hpp"
 
 #if defined _MSC_VER && _MSC_VER >= 1200
-    // disable warnings related to _setjmp
+    // interaction between '_setjmp' and C++ object destruction is non-portable
     #pragma warning( disable: 4611 )
 #endif
 
@@ -157,22 +166,22 @@ bool  PngDecoder::readHeader()
 
                 if( !m_buf.empty() || m_f )
                 {
-                    png_uint_32 width, height;
+                    png_uint_32 wdth, hght;
                     int bit_depth, color_type;
 
                     png_read_info( png_ptr, info_ptr );
 
-                    png_get_IHDR( png_ptr, info_ptr, &width, &height,
+                    png_get_IHDR( png_ptr, info_ptr, &wdth, &hght,
                                   &bit_depth, &color_type, 0, 0, 0 );
 
-                    m_width = (int)width;
-                    m_height = (int)height;
+                    m_width = (int)wdth;
+                    m_height = (int)hght;
                     m_color_type = color_type;
                     m_bit_depth = bit_depth;
 
                     if( bit_depth <= 8 || bit_depth == 16 )
                     {
-                        switch(color_type) 
+                        switch(color_type)
                         {
                            case PNG_COLOR_TYPE_RGB:
                            case PNG_COLOR_TYPE_PALETTE:
@@ -224,7 +233,7 @@ bool  PngDecoder::readData( Mat& img )
             else if( !isBigEndian() )
                 png_set_swap( png_ptr );
 
-            if(img.channels() < 4) 
+            if(img.channels() < 4)
             {
                 /* observation: png_read_image() writes 400 bytes beyond
                  * end of data when reading a 400x118 color png
@@ -247,7 +256,7 @@ bool  PngDecoder::readData( Mat& img )
 #else
                 png_set_gray_1_2_4_to_8( png_ptr );
 #endif
-            
+
             if( CV_MAT_CN(m_type) > 1 && color )
                 png_set_bgr( png_ptr ); // convert RGB to BGR
             else if( color )
@@ -317,23 +326,6 @@ void PngEncoder::flushBuf(void*)
 
 bool  PngEncoder::write( const Mat& img, const vector<int>& params )
 {
-    int compression_level = 0;
-    int compression_strategy = Z_RLE;
-
-    for( size_t i = 0; i < params.size(); i += 2 )
-    {
-        if( params[i] == CV_IMWRITE_PNG_COMPRESSION )
-        {
-            compression_level = params[i+1];
-            compression_level = MIN(MAX(compression_level, 0), MAX_MEM_LEVEL);
-        }
-        if( params[i] == CV_IMWRITE_PNG_STRATEGY )
-        {
-            compression_strategy = params[i+1];
-            compression_strategy = MIN(MAX(compression_strategy, 0), Z_FIXED); 
-        }
-    }
-
     png_structp png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
     png_infop info_ptr = 0;
     FILE* f = 0;
@@ -363,6 +355,23 @@ bool  PngEncoder::write( const Mat& img, const vector<int>& params )
                     f = fopen( m_filename.c_str(), "wb" );
                     if( f )
                         png_init_io( png_ptr, f );
+                }
+
+                int compression_level = 0;
+                int compression_strategy = Z_RLE;
+
+                for( size_t i = 0; i < params.size(); i += 2 )
+                {
+                    if( params[i] == CV_IMWRITE_PNG_COMPRESSION )
+                    {
+                        compression_level = params[i+1];
+                        compression_level = MIN(MAX(compression_level, 0), MAX_MEM_LEVEL);
+                    }
+                    if( params[i] == CV_IMWRITE_PNG_STRATEGY )
+                    {
+                        compression_strategy = params[i+1];
+                        compression_strategy = MIN(MAX(compression_strategy, 0), Z_FIXED);
+                    }
                 }
 
                 if( m_buf || f )

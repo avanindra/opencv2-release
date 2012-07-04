@@ -44,7 +44,18 @@
 
 #ifndef HAVE_CUDA
 
-void cv::gpu::resize(const GpuMat&, GpuMat&, Size, double, double, int, Stream&) { throw_nogpu(); }
+void cv::gpu::resize(const GpuMat& src, GpuMat& dst, Size dsize, double fx, double fy, int interpolation, Stream& s)
+{
+    (void)src;
+    (void)dst;
+    (void)dsize;
+    (void)fx;
+    (void)fy;
+    (void)interpolation;
+    (void)s;
+
+    throw_nogpu();
+}
 
 #else // HAVE_CUDA
 
@@ -61,7 +72,8 @@ namespace cv { namespace gpu { namespace device
 void cv::gpu::resize(const GpuMat& src, GpuMat& dst, Size dsize, double fx, double fy, int interpolation, Stream& s)
 {
     CV_Assert(src.depth() <= CV_32F && src.channels() <= 4);
-    CV_Assert(interpolation == INTER_NEAREST || interpolation == INTER_LINEAR || interpolation == INTER_CUBIC);
+    CV_Assert(interpolation == INTER_NEAREST || interpolation == INTER_LINEAR
+            || interpolation == INTER_CUBIC || interpolation == INTER_AREA);
     CV_Assert(!(dsize == Size()) || (fx > 0 && fy > 0));
 
     if (dsize == Size())
@@ -90,7 +102,7 @@ void cv::gpu::resize(const GpuMat& src, GpuMat& dst, Size dsize, double fx, doub
     src.locateROI(wholeSize, ofs);
 
     bool useNpp = (src.type() == CV_8UC1 || src.type() == CV_8UC4);
-    useNpp = useNpp && (interpolation == INTER_NEAREST || interpolation == INTER_LINEAR || src.type() == CV_8UC4);
+    useNpp = useNpp && (interpolation == INTER_NEAREST || interpolation == INTER_LINEAR || (src.type() == CV_8UC4 && interpolation != INTER_AREA));
 
     if (useNpp)
     {

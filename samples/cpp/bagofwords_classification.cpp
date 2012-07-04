@@ -28,7 +28,7 @@ const string bowImageDescriptorsDir = "/bowImageDescriptors";
 const string svmsDir = "/svms";
 const string plotsDir = "/plots";
 
-void help(char** argv)
+static void help(char** argv)
 {
 	cout << "\nThis program shows how to read in, train on and produce test results for the PASCAL VOC (Visual Object Challenge) data. \n"
 	 << "It shows how to use detectors, descriptors and recognition methods \n"
@@ -57,7 +57,7 @@ void help(char** argv)
 
 
 
-void makeDir( const string& dir )
+static void makeDir( const string& dir )
 {
 #if defined WIN32 || defined _WIN32
     CreateDirectory( dir.c_str(), 0 );
@@ -66,7 +66,7 @@ void makeDir( const string& dir )
 #endif
 }
 
-void makeUsedDirs( const string& rootPath )
+static void makeUsedDirs( const string& rootPath )
 {
     makeDir(rootPath + bowImageDescriptorsDir);
     makeDir(rootPath + svmsDir);
@@ -803,9 +803,9 @@ void VocData::calcClassifierPrecRecall(const string& input_file, vector<float>& 
         std::sort(order.begin(),order.end(),orderingSorter());
 
         /* 2. save ranking results to text file */
-        string input_file_std = checkFilenamePathsep(input_file);
-        size_t fnamestart = input_file_std.rfind("/");
-        string scoregt_file_str = input_file_std.substr(0,fnamestart+1) + "scoregt_" + class_name + ".txt";
+        string input_file_std1 = checkFilenamePathsep(input_file);
+        size_t fnamestart = input_file_std1.rfind("/");
+        string scoregt_file_str = input_file_std1.substr(0,fnamestart+1) + "scoregt_" + class_name + ".txt";
         std::ofstream scoregt_file(scoregt_file_str.c_str());
         if (scoregt_file.is_open())
         {
@@ -1356,7 +1356,7 @@ const vector<string>& VocData::getObjectClasses()
 // Protected Functions ------------------------------------
 //---------------------------------------------------------
 
-string getVocName( const string& vocPath )
+static string getVocName( const string& vocPath )
 {
     size_t found = vocPath.rfind( '/' );
     if( found == string::npos )
@@ -2014,7 +2014,7 @@ struct VocabTrainParams
                           // It shouldn't matter which object class is specified here - visual vocab will still be the same.
     int vocabSize; //number of visual words in vocabulary to train
     int memoryUse; // Memory to preallocate (in MB) when training vocab.
-                      // Change this depending on the size of the dataset/available memory.
+                   // Change this depending on the size of the dataset/available memory.
     float descProportion; // Specifies the number of descriptors to use from each image as a proportion of the total num descs.
 };
 
@@ -2047,7 +2047,7 @@ struct SVMTrainParamsExt
     bool balanceClasses;    // Balance class weights by number of samples in each (if true cSvmTrainTargetRatio is ignored).
 };
 
-void readUsedParams( const FileNode& fn, string& vocName, DDMParams& ddmParams, VocabTrainParams& vocabTrainParams, SVMTrainParamsExt& svmTrainParamsExt )
+static void readUsedParams( const FileNode& fn, string& vocName, DDMParams& ddmParams, VocabTrainParams& vocabTrainParams, SVMTrainParamsExt& svmTrainParamsExt )
 {
     fn["vocName"] >> vocName;
 
@@ -2063,7 +2063,7 @@ void readUsedParams( const FileNode& fn, string& vocName, DDMParams& ddmParams, 
     svmTrainParamsExt.read( currFn );
 }
 
-void writeUsedParams( FileStorage& fs, const string& vocName, const DDMParams& ddmParams, const VocabTrainParams& vocabTrainParams, const SVMTrainParamsExt& svmTrainParamsExt )
+static void writeUsedParams( FileStorage& fs, const string& vocName, const DDMParams& ddmParams, const VocabTrainParams& vocabTrainParams, const SVMTrainParamsExt& svmTrainParamsExt )
 {
     fs << "vocName" << vocName;
 
@@ -2080,7 +2080,7 @@ void writeUsedParams( FileStorage& fs, const string& vocName, const DDMParams& d
     fs << "}";
 }
 
-void printUsedParams( const string& vocPath, const string& resDir,
+static void printUsedParams( const string& vocPath, const string& resDir,
                       const DDMParams& ddmParams, const VocabTrainParams& vocabTrainParams,
                       const SVMTrainParamsExt& svmTrainParamsExt )
 {
@@ -2094,7 +2094,7 @@ void printUsedParams( const string& vocPath, const string& resDir,
     cout << "----------------------------------------------------------------" << endl << endl;
 }
 
-bool readVocabulary( const string& filename, Mat& vocabulary )
+static bool readVocabulary( const string& filename, Mat& vocabulary )
 {
     cout << "Reading vocabulary...";
     FileStorage fs( filename, FileStorage::READ );
@@ -2107,7 +2107,7 @@ bool readVocabulary( const string& filename, Mat& vocabulary )
     return false;
 }
 
-bool writeVocabulary( const string& filename, const Mat& vocabulary )
+static bool writeVocabulary( const string& filename, const Mat& vocabulary )
 {
     cout << "Saving vocabulary..." << endl;
     FileStorage fs( filename, FileStorage::WRITE );
@@ -2119,15 +2119,17 @@ bool writeVocabulary( const string& filename, const Mat& vocabulary )
     return false;
 }
 
-Mat trainVocabulary( const string& filename, VocData& vocData, const VocabTrainParams& trainParams,
+static Mat trainVocabulary( const string& filename, VocData& vocData, const VocabTrainParams& trainParams,
                      const Ptr<FeatureDetector>& fdetector, const Ptr<DescriptorExtractor>& dextractor )
 {
     Mat vocabulary;
     if( !readVocabulary( filename, vocabulary) )
     {
         CV_Assert( dextractor->descriptorType() == CV_32FC1 );
-        const int descByteSize = dextractor->descriptorSize()*4;
-        const int maxDescCount = (trainParams.memoryUse * 1048576) / descByteSize; // Total number of descs to use for training.
+        const int elemSize = CV_ELEM_SIZE(dextractor->descriptorType());
+        const int descByteSize = dextractor->descriptorSize() * elemSize;
+        const int bytesInMB = 1048576;
+        const int maxDescCount = (trainParams.memoryUse * bytesInMB) / descByteSize; // Total number of descs to use for training.
 
         cout << "Extracting VOC data..." << endl;
         vector<ObdImage> images;
@@ -2142,9 +2144,8 @@ Mat trainVocabulary( const string& filename, VocData& vocData, const VocabTrainP
 
         while( images.size() > 0 )
         {
-            if( bowTrainer.descripotorsCount() >= maxDescCount )
+            if( bowTrainer.descripotorsCount() > maxDescCount )
             {
-                assert( bowTrainer.descripotorsCount() == maxDescCount );
 #ifdef DEBUG_DESC_PROGRESS
                 cout << "Breaking due to full memory ( descriptors count = " << bowTrainer.descripotorsCount()
                         << "; descriptor size in bytes = " << descByteSize << "; all used memory = "
@@ -2209,7 +2210,7 @@ Mat trainVocabulary( const string& filename, VocData& vocData, const VocabTrainP
     return vocabulary;
 }
 
-bool readBowImageDescriptor( const string& file, Mat& bowImageDescriptor )
+static bool readBowImageDescriptor( const string& file, Mat& bowImageDescriptor )
 {
     FileStorage fs( file, FileStorage::READ );
     if( fs.isOpened() )
@@ -2220,7 +2221,7 @@ bool readBowImageDescriptor( const string& file, Mat& bowImageDescriptor )
     return false;
 }
 
-bool writeBowImageDescriptor( const string& file, const Mat& bowImageDescriptor )
+static bool writeBowImageDescriptor( const string& file, const Mat& bowImageDescriptor )
 {
     FileStorage fs( file, FileStorage::WRITE );
     if( fs.isOpened() )
@@ -2232,7 +2233,7 @@ bool writeBowImageDescriptor( const string& file, const Mat& bowImageDescriptor 
 }
 
 // Load in the bag of words vectors for a set of images, from file if possible
-void calculateImageDescriptors( const vector<ObdImage>& images, vector<Mat>& imageDescriptors,
+static void calculateImageDescriptors( const vector<ObdImage>& images, vector<Mat>& imageDescriptors,
                                 Ptr<BOWImgDescriptorExtractor>& bowExtractor, const Ptr<FeatureDetector>& fdetector,
                                 const string& resPath )
 {
@@ -2276,7 +2277,7 @@ void calculateImageDescriptors( const vector<ObdImage>& images, vector<Mat>& ima
     }
 }
 
-void removeEmptyBowImageDescriptors( vector<ObdImage>& images, vector<Mat>& bowImageDescriptors,
+static void removeEmptyBowImageDescriptors( vector<ObdImage>& images, vector<Mat>& bowImageDescriptors,
                                      vector<char>& objectPresent )
 {
     CV_Assert( !images.empty() );
@@ -2293,7 +2294,7 @@ void removeEmptyBowImageDescriptors( vector<ObdImage>& images, vector<Mat>& bowI
     }
 }
 
-void removeBowImageDescriptorsByCount( vector<ObdImage>& images, vector<Mat> bowImageDescriptors, vector<char> objectPresent,
+static void removeBowImageDescriptorsByCount( vector<ObdImage>& images, vector<Mat> bowImageDescriptors, vector<char> objectPresent,
                                        const SVMTrainParamsExt& svmParamsExt, int descsToDelete )
 {
     RNG& rng = theRNG();
@@ -2325,7 +2326,7 @@ void removeBowImageDescriptorsByCount( vector<ObdImage>& images, vector<Mat> bow
     CV_Assert( bowImageDescriptors.size() == objectPresent.size() );
 }
 
-void setSVMParams( CvSVMParams& svmParams, CvMat& class_wts_cv, const Mat& responses, bool balanceClasses )
+static void setSVMParams( CvSVMParams& svmParams, CvMat& class_wts_cv, const Mat& responses, bool balanceClasses )
 {
     int pos_ex = countNonZero(responses == 1);
     int neg_ex = countNonZero(responses == -1);
@@ -2354,7 +2355,7 @@ void setSVMParams( CvSVMParams& svmParams, CvMat& class_wts_cv, const Mat& respo
     }
 }
 
-void setSVMTrainAutoParams( CvParamGrid& c_grid, CvParamGrid& gamma_grid,
+static void setSVMTrainAutoParams( CvParamGrid& c_grid, CvParamGrid& gamma_grid,
                             CvParamGrid& p_grid, CvParamGrid& nu_grid,
                             CvParamGrid& coef_grid, CvParamGrid& degree_grid )
 {
@@ -2375,7 +2376,7 @@ void setSVMTrainAutoParams( CvParamGrid& c_grid, CvParamGrid& gamma_grid,
     degree_grid.step = 0;
 }
 
-void trainSVMClassifier( CvSVM& svm, const SVMTrainParamsExt& svmParamsExt, const string& objClassName, VocData& vocData,
+static void trainSVMClassifier( CvSVM& svm, const SVMTrainParamsExt& svmParamsExt, const string& objClassName, VocData& vocData,
                          Ptr<BOWImgDescriptorExtractor>& bowExtractor, const Ptr<FeatureDetector>& fdetector,
                          const string& resPath )
 {
@@ -2450,7 +2451,7 @@ void trainSVMClassifier( CvSVM& svm, const SVMTrainParamsExt& svmParamsExt, cons
     }
 }
 
-void computeConfidences( CvSVM& svm, const string& objClassName, VocData& vocData,
+static void computeConfidences( CvSVM& svm, const string& objClassName, VocData& vocData,
                          Ptr<BOWImgDescriptorExtractor>& bowExtractor, const Ptr<FeatureDetector>& fdetector,
                          const string& resPath )
 {
@@ -2491,7 +2492,7 @@ void computeConfidences( CvSVM& svm, const string& objClassName, VocData& vocDat
     cout << "---------------------------------------------------------------" << endl;
 }
 
-void computeGnuPlotOutput( const string& resPath, const string& objClassName, VocData& vocData )
+static void computeGnuPlotOutput( const string& resPath, const string& objClassName, VocData& vocData )
 {
     vector<float> precision, recall;
     float ap;

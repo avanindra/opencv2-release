@@ -5,18 +5,10 @@
 
 project(${ZLIB_LIBRARY} C)
 
-include(CheckTypeSize)
 include(CheckFunctionExists)
 include(CheckIncludeFile)
 include(CheckCSourceCompiles)
-
-#
-# Check to see if we have large file support
-#
-check_type_size(off64_t OFF64_T)
-if(HAVE_OFF64_T)
-  add_definitions(-D_LARGEFILE64_SOURCE=1)
-endif()
+include(CheckTypeSize)
 
 #
 # Check for fseeko
@@ -34,6 +26,14 @@ check_include_file(unistd.h Z_HAVE_UNISTD_H)
 if(MSVC)
   add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
   add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
+endif()
+
+#
+# Check to see if we have large file support
+#
+check_type_size(off64_t OFF64_T)
+if(HAVE_OFF64_T)
+  add_definitions(-D_LARGEFILE64_SOURCE=1)
 endif()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.cmakein"
@@ -82,22 +82,20 @@ if(UNIX)
   endif()
 endif()
 
-if(MSVC AND NOT ENABLE_NOISY_WARNINGS)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4013")
-endif()
+ocv_warnings_disable(CMAKE_C_FLAGS /wd4013 -Wattributes -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations)
 
 set_target_properties(${ZLIB_LIBRARY} PROPERTIES
         OUTPUT_NAME ${ZLIB_LIBRARY}
         DEBUG_POSTFIX "${OPENCV_DEBUG_POSTFIX}"
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/3rdparty/${OPENCV_LIB_INSTALL_PATH}"
+        ARCHIVE_OUTPUT_DIRECTORY ${3P_LIBRARY_OUTPUT_PATH}
     )
 
 if(ENABLE_SOLUTION_FOLDERS)
   set_target_properties(${ZLIB_LIBRARY} PROPERTIES FOLDER "3rdparty")
 endif()
-	
+
 if(NOT BUILD_SHARED_LIBS)
-  install(TARGETS ${ZLIB_LIBRARY} ARCHIVE DESTINATION share/OpenCV/3rdparty/${OPENCV_LIB_INSTALL_PATH} COMPONENT main)
+  install(TARGETS ${ZLIB_LIBRARY} ARCHIVE DESTINATION ${OPENCV_3P_LIB_INSTALL_PATH} COMPONENT main)
 endif()
 
 ocv_parse_header2(ZLIB "${CMAKE_CURRENT_SOURCE_DIR}/zlib.h" ZLIB_VERSION PARENT_SCOPE)

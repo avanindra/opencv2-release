@@ -1247,7 +1247,7 @@ int _cvSolveEqu1th(T c1, T c0, T* X);
         vertices_number: in, number of vertices in polygon
      Return     :
     --------------------------------------------------------------------------*/
-void _cvSetSeqBlockSize(CvVoronoiDiagramInt* pVoronoiDiagramInt,int vertices_number)
+static void _cvSetSeqBlockSize(CvVoronoiDiagramInt* pVoronoiDiagramInt,int vertices_number)
 {
     int N = 2*vertices_number;
     cvSetSeqBlockSize(pVoronoiDiagramInt->SiteSeq,N*pVoronoiDiagramInt->SiteSeq->elem_size);
@@ -3078,8 +3078,8 @@ static int _cvFindOppositSiteCW(pCvVoronoiHole pHole, CvVoronoiDiagramInt* pVoro
     pCvVoronoiEdge pEdge_left = pSite_left->edge2->next_edge;
     pCvVoronoiEdge pEdge_right = &Edge_right;
 
-    CvVoronoiEdgeInt Edge = {NULL,pNode,pSite_right,NULL,NULL,NULL,NULL,NULL};
-    CvVoronoiEdgeInt Edge_cur = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+    CvVoronoiEdgeInt Edge     = {NULL,pNode,pSite_right,NULL,NULL,NULL,NULL,NULL};
+    CvVoronoiEdgeInt Edge_cur = {NULL,NULL, NULL,       NULL,NULL,NULL,NULL,NULL};
     pCvVoronoiEdge pEdge = &Edge;
 
     float radius1, radius2,dist1, dist2;
@@ -3133,8 +3133,8 @@ static int _cvFindOppositSiteCCW(pCvVoronoiHole pHole,CvVoronoiDiagramInt* pVoro
     pCvVoronoiEdge pEdge_left = &Edge_left;
     pCvVoronoiEdge pEdge_right = pSite_right->edge1->prev_edge;
 
-    CvVoronoiEdgeInt Edge = {NULL,pNode,pSite_left,NULL,NULL,NULL,NULL};
-    CvVoronoiEdgeInt Edge_cur = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+    CvVoronoiEdgeInt Edge     = {NULL,pNode,pSite_left,NULL,NULL,NULL,NULL,NULL};
+    CvVoronoiEdgeInt Edge_cur = {NULL,NULL, NULL,      NULL,NULL,NULL,NULL,NULL};
     pCvVoronoiEdge pEdge = &Edge;
 
     double dist1, dist2;

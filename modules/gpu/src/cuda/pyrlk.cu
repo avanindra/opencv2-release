@@ -40,7 +40,7 @@
 //
 // Copyright (c) 2010, Paul Furgale, Chi Hay Tong
 //
-// The original code was written by Paul Furgale and Chi Hay Tong 
+// The original code was written by Paul Furgale and Chi Hay Tong
 // and later optimized and prepared for integration into OpenCV by Itseez.
 //
 //M*/
@@ -49,129 +49,30 @@
 #include "opencv2/gpu/device/utility.hpp"
 #include "opencv2/gpu/device/functional.hpp"
 #include "opencv2/gpu/device/limits.hpp"
+#include "opencv2/gpu/device/vec_math.hpp"
 
-namespace cv { namespace gpu { namespace device 
+namespace cv { namespace gpu { namespace device
 {
-    namespace pyrlk 
+    namespace pyrlk
     {
-        __constant__ int c_cn;
-        __constant__ float c_minEigThreshold;
         __constant__ int c_winSize_x;
         __constant__ int c_winSize_y;
-        __constant__ int c_winSize_x_cn;
+
         __constant__ int c_halfWin_x;
         __constant__ int c_halfWin_y;
+
         __constant__ int c_iters;
 
-        void loadConstants(int cn, float minEigThreshold, int2 winSize, int iters)
+        void loadConstants(int2 winSize, int iters)
         {
-            int2 halfWin = make_int2((winSize.x - 1) / 2, (winSize.y - 1) / 2);            
-            cudaSafeCall( cudaMemcpyToSymbol(c_cn, &cn, sizeof(int)) );
-            cudaSafeCall( cudaMemcpyToSymbol(c_minEigThreshold, &minEigThreshold, sizeof(float)) );
             cudaSafeCall( cudaMemcpyToSymbol(c_winSize_x, &winSize.x, sizeof(int)) );
             cudaSafeCall( cudaMemcpyToSymbol(c_winSize_y, &winSize.y, sizeof(int)) );
-            winSize.x *= cn;
-            cudaSafeCall( cudaMemcpyToSymbol(c_winSize_x_cn, &winSize.x, sizeof(int)) );
+
+            int2 halfWin = make_int2((winSize.x - 1) / 2, (winSize.y - 1) / 2);
             cudaSafeCall( cudaMemcpyToSymbol(c_halfWin_x, &halfWin.x, sizeof(int)) );
             cudaSafeCall( cudaMemcpyToSymbol(c_halfWin_y, &halfWin.y, sizeof(int)) );
+
             cudaSafeCall( cudaMemcpyToSymbol(c_iters, &iters, sizeof(int)) );
-        }
-
-        __global__ void calcSharrDeriv_vertical(const PtrStepb src, PtrStep<short> dx_buf, PtrStep<short> dy_buf, int rows, int colsn)
-        {
-            const int x = blockIdx.x * blockDim.x + threadIdx.x;
-            const int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-            if (y < rows && x < colsn)
-            {
-                const uchar src_val0 = src(y > 0 ? y - 1 : 1, x);
-                const uchar src_val1 = src(y, x);
-                const uchar src_val2 = src(y < rows - 1 ? y + 1 : rows - 2, x);
-                
-                dx_buf(y, x) = (src_val0 + src_val2) * 3 + src_val1 * 10;
-                dy_buf(y, x) = src_val2 - src_val0;
-            }
-        }
-
-        __global__ void calcSharrDeriv_horizontal(const PtrStep<short> dx_buf, const PtrStep<short> dy_buf, PtrStep<short> dIdx, PtrStep<short> dIdy, int rows, int cols)
-        {
-            const int x = blockIdx.x * blockDim.x + threadIdx.x;
-            const int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-            const int colsn = cols * c_cn;
-
-            if (y < rows && x < colsn)
-            {
-                const short* dx_buf_row = dx_buf.ptr(y);
-                const short* dy_buf_row = dy_buf.ptr(y);
-
-                const int xr = x + c_cn < colsn ? x + c_cn : (cols - 2) * c_cn + x + c_cn - colsn;
-                const int xl = x - c_cn >= 0 ? x - c_cn : c_cn + x;
-
-                dIdx(y, x) = dx_buf_row[xr] - dx_buf_row[xl];
-                dIdy(y, x) = (dy_buf_row[xr] + dy_buf_row[xl]) * 3 + dy_buf_row[x] * 10;
-            }
-        }
-
-        void calcSharrDeriv_gpu(DevMem2Db src, DevMem2D_<short> dx_buf, DevMem2D_<short> dy_buf, DevMem2D_<short> dIdx, DevMem2D_<short> dIdy, int cn, 
-            cudaStream_t stream)
-        {
-            dim3 block(32, 8);
-            dim3 grid(divUp(src.cols * cn, block.x), divUp(src.rows, block.y));
-
-            calcSharrDeriv_vertical<<<grid, block, 0, stream>>>(src, dx_buf, dy_buf, src.rows, src.cols * cn);
-            cudaSafeCall( cudaGetLastError() );
-
-            calcSharrDeriv_horizontal<<<grid, block, 0, stream>>>(dx_buf, dy_buf, dIdx, dIdy, src.rows, src.cols);
-            cudaSafeCall( cudaGetLastError() );
-
-            if (stream == 0)
-                cudaSafeCall( cudaDeviceSynchronize() );
-        }
-
-        #define W_BITS 14
-        #define W_BITS1 14
-
-        #define  CV_DESCALE(x, n)     (((x) + (1 << ((n)-1))) >> (n))
-
-        __device__ int linearFilter(const PtrStepb& src, float2 pt, int x, int y)
-        {
-            int2 ipt;
-            ipt.x = __float2int_rd(pt.x);
-            ipt.y = __float2int_rd(pt.y);
-
-            float a = pt.x - ipt.x;
-            float b = pt.y - ipt.y;
-
-            int iw00 = __float2int_rn((1.0f - a) * (1.0f - b) * (1 << W_BITS));
-            int iw01 = __float2int_rn(a * (1.0f - b) * (1 << W_BITS));
-            int iw10 = __float2int_rn((1.0f - a) * b * (1 << W_BITS));
-            int iw11 = (1 << W_BITS) - iw00 - iw01 - iw10;
-
-            const uchar* src_row = src.ptr(ipt.y + y) + ipt.x * c_cn;
-            const uchar* src_row1 = src.ptr(ipt.y + y + 1) + ipt.x * c_cn;
-
-            return CV_DESCALE(src_row[x] * iw00 + src_row[x + c_cn] * iw01 + src_row1[x] * iw10 + src_row1[x + c_cn] * iw11, W_BITS1 - 5);
-        }
-
-        __device__ int linearFilter(const PtrStep<short>& src, float2 pt, int x, int y)
-        {
-            int2 ipt;
-            ipt.x = __float2int_rd(pt.x);
-            ipt.y = __float2int_rd(pt.y);
-
-            float a = pt.x - ipt.x;
-            float b = pt.y - ipt.y;
-
-            int iw00 = __float2int_rn((1.0f - a) * (1.0f - b) * (1 << W_BITS));
-            int iw01 = __float2int_rn(a * (1.0f - b) * (1 << W_BITS));
-            int iw10 = __float2int_rn((1.0f - a) * b * (1 << W_BITS));
-            int iw11 = (1 << W_BITS) - iw00 - iw01 - iw10;
-
-            const short* src_row = src.ptr(ipt.y + y) + ipt.x * c_cn;
-            const short* src_row1 = src.ptr(ipt.y + y + 1) + ipt.x * c_cn;
-
-            return CV_DESCALE(src_row[x] * iw00 + src_row[x + c_cn] * iw01 + src_row1[x] * iw10 + src_row1[x + c_cn] * iw11, W_BITS1);
         }
 
         __device__ void reduce(float& val1, float& val2, float& val3, float* smem1, float* smem2, float* smem3, int tid)
@@ -182,21 +83,21 @@ namespace cv { namespace gpu { namespace device
             __syncthreads();
 
 #if __CUDA_ARCH__ > 110
-            if (tid < 128) 
-            { 
-                smem1[tid] = val1 += smem1[tid + 128]; 
-                smem2[tid] = val2 += smem2[tid + 128]; 
-                smem3[tid] = val3 += smem3[tid + 128]; 
-            } 
+            if (tid < 128)
+            {
+                smem1[tid] = val1 += smem1[tid + 128];
+                smem2[tid] = val2 += smem2[tid + 128];
+                smem3[tid] = val3 += smem3[tid + 128];
+            }
             __syncthreads();
 #endif
 
-            if (tid < 64) 
-            { 
-                smem1[tid] = val1 += smem1[tid + 64]; 
-                smem2[tid] = val2 += smem2[tid + 64]; 
+            if (tid < 64)
+            {
+                smem1[tid] = val1 += smem1[tid + 64];
+                smem2[tid] = val2 += smem2[tid + 64];
                 smem3[tid] = val3 += smem3[tid + 64];
-            } 
+            }
             __syncthreads();
 
             if (tid < 32)
@@ -205,28 +106,28 @@ namespace cv { namespace gpu { namespace device
                 volatile float* vmem2 = smem2;
                 volatile float* vmem3 = smem3;
 
-                vmem1[tid] = val1 += vmem1[tid + 32]; 
-                vmem2[tid] = val2 += vmem2[tid + 32]; 
+                vmem1[tid] = val1 += vmem1[tid + 32];
+                vmem2[tid] = val2 += vmem2[tid + 32];
                 vmem3[tid] = val3 += vmem3[tid + 32];
 
-                vmem1[tid] = val1 += vmem1[tid + 16]; 
-                vmem2[tid] = val2 += vmem2[tid + 16]; 
+                vmem1[tid] = val1 += vmem1[tid + 16];
+                vmem2[tid] = val2 += vmem2[tid + 16];
                 vmem3[tid] = val3 += vmem3[tid + 16];
 
-                vmem1[tid] = val1 += vmem1[tid + 8]; 
-                vmem2[tid] = val2 += vmem2[tid + 8]; 
+                vmem1[tid] = val1 += vmem1[tid + 8];
+                vmem2[tid] = val2 += vmem2[tid + 8];
                 vmem3[tid] = val3 += vmem3[tid + 8];
 
-                vmem1[tid] = val1 += vmem1[tid + 4]; 
-                vmem2[tid] = val2 += vmem2[tid + 4]; 
+                vmem1[tid] = val1 += vmem1[tid + 4];
+                vmem2[tid] = val2 += vmem2[tid + 4];
                 vmem3[tid] = val3 += vmem3[tid + 4];
 
-                vmem1[tid] = val1 += vmem1[tid + 2]; 
-                vmem2[tid] = val2 += vmem2[tid + 2]; 
+                vmem1[tid] = val1 += vmem1[tid + 2];
+                vmem2[tid] = val2 += vmem2[tid + 2];
                 vmem3[tid] = val3 += vmem3[tid + 2];
 
-                vmem1[tid] = val1 += vmem1[tid + 1]; 
-                vmem2[tid] = val2 += vmem2[tid + 1]; 
+                vmem1[tid] = val1 += vmem1[tid + 1];
+                vmem2[tid] = val2 += vmem2[tid + 1];
                 vmem3[tid] = val3 += vmem3[tid + 1];
             }
         }
@@ -238,19 +139,19 @@ namespace cv { namespace gpu { namespace device
             __syncthreads();
 
 #if __CUDA_ARCH__ > 110
-            if (tid < 128) 
-            { 
-                smem1[tid] = val1 += smem1[tid + 128]; 
-                smem2[tid] = val2 += smem2[tid + 128];  
-            } 
+            if (tid < 128)
+            {
+                smem1[tid] = val1 += smem1[tid + 128];
+                smem2[tid] = val2 += smem2[tid + 128];
+            }
             __syncthreads();
 #endif
 
-            if (tid < 64) 
-            { 
-                smem1[tid] = val1 += smem1[tid + 64]; 
-                smem2[tid] = val2 += smem2[tid + 64]; 
-            } 
+            if (tid < 64)
+            {
+                smem1[tid] = val1 += smem1[tid + 64];
+                smem2[tid] = val2 += smem2[tid + 64];
+            }
             __syncthreads();
 
             if (tid < 32)
@@ -258,23 +159,23 @@ namespace cv { namespace gpu { namespace device
                 volatile float* vmem1 = smem1;
                 volatile float* vmem2 = smem2;
 
-                vmem1[tid] = val1 += vmem1[tid + 32]; 
-                vmem2[tid] = val2 += vmem2[tid + 32]; 
+                vmem1[tid] = val1 += vmem1[tid + 32];
+                vmem2[tid] = val2 += vmem2[tid + 32];
 
-                vmem1[tid] = val1 += vmem1[tid + 16]; 
-                vmem2[tid] = val2 += vmem2[tid + 16]; 
+                vmem1[tid] = val1 += vmem1[tid + 16];
+                vmem2[tid] = val2 += vmem2[tid + 16];
 
-                vmem1[tid] = val1 += vmem1[tid + 8]; 
-                vmem2[tid] = val2 += vmem2[tid + 8]; 
+                vmem1[tid] = val1 += vmem1[tid + 8];
+                vmem2[tid] = val2 += vmem2[tid + 8];
 
-                vmem1[tid] = val1 += vmem1[tid + 4]; 
-                vmem2[tid] = val2 += vmem2[tid + 4]; 
+                vmem1[tid] = val1 += vmem1[tid + 4];
+                vmem2[tid] = val2 += vmem2[tid + 4];
 
-                vmem1[tid] = val1 += vmem1[tid + 2]; 
-                vmem2[tid] = val2 += vmem2[tid + 2]; 
+                vmem1[tid] = val1 += vmem1[tid + 2];
+                vmem2[tid] = val2 += vmem2[tid + 2];
 
-                vmem1[tid] = val1 += vmem1[tid + 1]; 
-                vmem2[tid] = val2 += vmem2[tid + 1]; 
+                vmem1[tid] = val1 += vmem1[tid + 1];
+                vmem2[tid] = val2 += vmem2[tid + 1];
             }
         }
 
@@ -284,37 +185,91 @@ namespace cv { namespace gpu { namespace device
             __syncthreads();
 
 #if __CUDA_ARCH__ > 110
-            if (tid < 128) 
-            { 
-                smem1[tid] = val1 += smem1[tid + 128]; 
-            } 
+            if (tid < 128)
+            {
+                smem1[tid] = val1 += smem1[tid + 128];
+            }
             __syncthreads();
 #endif
 
-            if (tid < 64) 
-            { 
-                smem1[tid] = val1 += smem1[tid + 64]; 
-            } 
+            if (tid < 64)
+            {
+                smem1[tid] = val1 += smem1[tid + 64];
+            }
             __syncthreads();
 
             if (tid < 32)
             {
                 volatile float* vmem1 = smem1;
 
-                vmem1[tid] = val1 += vmem1[tid + 32]; 
-                vmem1[tid] = val1 += vmem1[tid + 16]; 
-                vmem1[tid] = val1 += vmem1[tid + 8]; 
+                vmem1[tid] = val1 += vmem1[tid + 32];
+                vmem1[tid] = val1 += vmem1[tid + 16];
+                vmem1[tid] = val1 += vmem1[tid + 8];
                 vmem1[tid] = val1 += vmem1[tid + 4];
-                vmem1[tid] = val1 += vmem1[tid + 2]; 
-                vmem1[tid] = val1 += vmem1[tid + 1]; 
+                vmem1[tid] = val1 += vmem1[tid + 2];
+                vmem1[tid] = val1 += vmem1[tid + 1];
             }
         }
 
-        #define SCALE (1.0f / (1 << 20))
+        texture<float, cudaTextureType2D, cudaReadModeElementType> tex_If(false, cudaFilterModeLinear, cudaAddressModeClamp);
+        texture<float4, cudaTextureType2D, cudaReadModeElementType> tex_If4(false, cudaFilterModeLinear, cudaAddressModeClamp);
+        texture<uchar, cudaTextureType2D, cudaReadModeElementType> tex_Ib(false, cudaFilterModePoint, cudaAddressModeClamp);
 
-        template <int PATCH_X, int PATCH_Y, bool calcErr, bool GET_MIN_EIGENVALS>
-        __global__ void lkSparse(const PtrStepb I, const PtrStepb J, const PtrStep<short> dIdx, const PtrStep<short> dIdy,
-            const float2* prevPts, float2* nextPts, uchar* status, float* err, const int level, const int rows, const int cols)
+        texture<float, cudaTextureType2D, cudaReadModeElementType> tex_Jf(false, cudaFilterModeLinear, cudaAddressModeClamp);
+        texture<float4, cudaTextureType2D, cudaReadModeElementType> tex_Jf4(false, cudaFilterModeLinear, cudaAddressModeClamp);
+
+        template <int cn> struct Tex_I;
+        template <> struct Tex_I<1>
+        {
+            static __device__ __forceinline__ float read(float x, float y)
+            {
+                return tex2D(tex_If, x, y);
+            }
+        };
+        template <> struct Tex_I<4>
+        {
+            static __device__ __forceinline__ float4 read(float x, float y)
+            {
+                return tex2D(tex_If4, x, y);
+            }
+        };
+
+        template <int cn> struct Tex_J;
+        template <> struct Tex_J<1>
+        {
+            static __device__ __forceinline__ float read(float x, float y)
+            {
+                return tex2D(tex_Jf, x, y);
+            }
+        };
+        template <> struct Tex_J<4>
+        {
+            static __device__ __forceinline__ float4 read(float x, float y)
+            {
+                return tex2D(tex_Jf4, x, y);
+            }
+        };
+
+        __device__ __forceinline__ void accum(float& dst, float val)
+        {
+            dst += val;
+        }
+        __device__ __forceinline__ void accum(float& dst, const float4& val)
+        {
+            dst += val.x + val.y + val.z;
+        }
+
+        __device__ __forceinline__ float abs_(float a)
+        {
+            return ::fabs(a);
+        }
+        __device__ __forceinline__ float4 abs_(const float4& a)
+        {
+            return fabs(a);
+        }
+
+        template <int cn, int PATCH_X, int PATCH_Y, bool calcErr>
+        __global__ void lkSparse(const float2* prevPts, float2* nextPts, uchar* status, float* err, const int level, const int rows, const int cols)
         {
 #if __CUDA_ARCH__ <= 110
             __shared__ float smem1[128];
@@ -332,47 +287,52 @@ namespace cv { namespace gpu { namespace device
             prevPt.x *= (1.0f / (1 << level));
             prevPt.y *= (1.0f / (1 << level));
 
-            prevPt.x -= c_halfWin_x;
-            prevPt.y -= c_halfWin_y;
-
-            if (prevPt.x < -c_winSize_x || prevPt.x >= cols || prevPt.y < -c_winSize_y || prevPt.y >= rows)
+            if (prevPt.x < 0 || prevPt.x >= cols || prevPt.y < 0 || prevPt.y >= rows)
             {
-                if (level == 0 && tid == 0)
-                {
+                if (tid == 0 && level == 0)
                     status[blockIdx.x] = 0;
-
-                    if (calcErr) 
-                        err[blockIdx.x] = 0;
-                }
 
                 return;
             }
 
+            prevPt.x -= c_halfWin_x;
+            prevPt.y -= c_halfWin_y;
+
             // extract the patch from the first image, compute covariation matrix of derivatives
-            
+
             float A11 = 0;
             float A12 = 0;
             float A22 = 0;
 
-            int I_patch[PATCH_Y][PATCH_X];
-            int dIdx_patch[PATCH_Y][PATCH_X];
-            int dIdy_patch[PATCH_Y][PATCH_X];
+            typedef typename TypeVec<float, cn>::vec_type work_type;
 
-            for (int y = threadIdx.y, i = 0; y < c_winSize_y; y += blockDim.y, ++i)
-            {                
-                for (int x = threadIdx.x, j = 0; x < c_winSize_x_cn; x += blockDim.x, ++j)
+            work_type I_patch   [PATCH_Y][PATCH_X];
+            work_type dIdx_patch[PATCH_Y][PATCH_X];
+            work_type dIdy_patch[PATCH_Y][PATCH_X];
+
+            for (int yBase = threadIdx.y, i = 0; yBase < c_winSize_y; yBase += blockDim.y, ++i)
+            {
+                for (int xBase = threadIdx.x, j = 0; xBase < c_winSize_x; xBase += blockDim.x, ++j)
                 {
-                    I_patch[i][j] = linearFilter(I, prevPt, x, y);
+                    float x = prevPt.x + xBase + 0.5f;
+                    float y = prevPt.y + yBase + 0.5f;
 
-                    int ixval = linearFilter(dIdx, prevPt, x, y);
-                    int iyval = linearFilter(dIdy, prevPt, x, y);
+                    I_patch[i][j] = Tex_I<cn>::read(x, y);
 
-                    dIdx_patch[i][j] = ixval;
-                    dIdy_patch[i][j] = iyval;
-                    
-                    A11 += ixval * ixval;
-                    A12 += ixval * iyval;
-                    A22 += iyval * iyval;
+                    // Sharr Deriv
+
+                    work_type dIdx = 3.0f * Tex_I<cn>::read(x+1, y-1) + 10.0f * Tex_I<cn>::read(x+1, y) + 3.0f * Tex_I<cn>::read(x+1, y+1) -
+                                     (3.0f * Tex_I<cn>::read(x-1, y-1) + 10.0f * Tex_I<cn>::read(x-1, y) + 3.0f * Tex_I<cn>::read(x-1, y+1));
+
+                    work_type dIdy = 3.0f * Tex_I<cn>::read(x-1, y+1) + 10.0f * Tex_I<cn>::read(x, y+1) + 3.0f * Tex_I<cn>::read(x+1, y+1) -
+                                    (3.0f * Tex_I<cn>::read(x-1, y-1) + 10.0f * Tex_I<cn>::read(x, y-1) + 3.0f * Tex_I<cn>::read(x+1, y-1));
+
+                    dIdx_patch[i][j] = dIdx;
+                    dIdy_patch[i][j] = dIdy;
+
+                    accum(A11, dIdx * dIdx);
+                    accum(A12, dIdx * dIdy);
+                    accum(A22, dIdy * dIdy);
                 }
             }
 
@@ -382,77 +342,67 @@ namespace cv { namespace gpu { namespace device
             A11 = smem1[0];
             A12 = smem2[0];
             A22 = smem3[0];
-            
-            A11 *= SCALE;
-            A12 *= SCALE;
-            A22 *= SCALE;
 
+            float D = A11 * A22 - A12 * A12;
+
+            if (D < numeric_limits<float>::epsilon())
             {
-                float D = A11 * A22 - A12 * A12;
-                float minEig = (A22 + A11 - ::sqrtf((A11 - A22) * (A11 - A22) + 4.f * A12 * A12)) / (2 * c_winSize_x * c_winSize_y);
-            
-                if (calcErr && GET_MIN_EIGENVALS && tid == 0) 
-                    err[blockIdx.x] = minEig;
+                if (tid == 0 && level == 0)
+                    status[blockIdx.x] = 0;
 
-                if (minEig < c_minEigThreshold || D < numeric_limits<float>::epsilon())
+                return;
+            }
+
+            D = 1.f / D;
+
+            A11 *= D;
+            A12 *= D;
+            A22 *= D;
+
+            float2 nextPt = nextPts[blockIdx.x];
+            nextPt.x *= 2.f;
+            nextPt.y *= 2.f;
+
+            nextPt.x -= c_halfWin_x;
+            nextPt.y -= c_halfWin_y;
+
+            for (int k = 0; k < c_iters; ++k)
+            {
+                if (nextPt.x < -c_halfWin_x || nextPt.x >= cols || nextPt.y < -c_halfWin_y || nextPt.y >= rows)
                 {
-                    if (level == 0 && tid == 0)
+                    if (tid == 0 && level == 0)
                         status[blockIdx.x] = 0;
 
                     return;
                 }
 
-                D = 1.f / D;
-            
-                A11 *= D;
-                A12 *= D;
-                A22 *= D;
-            }
-
-            float2 nextPt = nextPts[blockIdx.x];
-            nextPt.x *= 2.f;
-            nextPt.y *= 2.f; 
-            
-            nextPt.x -= c_halfWin_x;
-            nextPt.y -= c_halfWin_y;
-
-            bool status_ = true;
-
-            for (int k = 0; k < c_iters; ++k)
-            {
-                if (nextPt.x < -c_winSize_x || nextPt.x >= cols || nextPt.y < -c_winSize_y || nextPt.y >= rows)
-                {
-                    status_ = false;
-                    break;
-                }
-
                 float b1 = 0;
                 float b2 = 0;
-                
+
                 for (int y = threadIdx.y, i = 0; y < c_winSize_y; y += blockDim.y, ++i)
                 {
-                    for (int x = threadIdx.x, j = 0; x < c_winSize_x_cn; x += blockDim.x, ++j)
+                    for (int x = threadIdx.x, j = 0; x < c_winSize_x; x += blockDim.x, ++j)
                     {
-                        int diff = linearFilter(J, nextPt, x, y) - I_patch[i][j];
+                        work_type I_val = I_patch[i][j];
+                        work_type J_val = Tex_J<cn>::read(nextPt.x + x + 0.5f, nextPt.y + y + 0.5f);
 
-                        b1 += diff * dIdx_patch[i][j];
-                        b2 += diff * dIdy_patch[i][j];
+                        work_type diff = (J_val - I_val) * 32.0f;
+
+                        accum(b1, diff * dIdx_patch[i][j]);
+                        accum(b2, diff * dIdy_patch[i][j]);
                     }
                 }
-                
+
                 reduce(b1, b2, smem1, smem2, tid);
                 __syncthreads();
 
                 b1 = smem1[0];
                 b2 = smem2[0];
 
-                b1 *= SCALE;
-                b2 *= SCALE;
-                    
                 float2 delta;
                 delta.x = A12 * b2 - A22 * b1;
                 delta.y = A12 * b1 - A11 * b2;
-                    
+
                 nextPt.x += delta.x;
                 nextPt.y += delta.y;
 
@@ -460,24 +410,23 @@ namespace cv { namespace gpu { namespace device
                     break;
             }
 
-            if (nextPt.x < -c_winSize_x || nextPt.x >= cols || nextPt.y < -c_winSize_y || nextPt.y >= rows)
-                status_ = false;
-
-            float errval = 0.f;
-            if (calcErr && !GET_MIN_EIGENVALS && status_)
+            float errval = 0;
+            if (calcErr)
             {
                 for (int y = threadIdx.y, i = 0; y < c_winSize_y; y += blockDim.y, ++i)
                 {
-                    for (int x = threadIdx.x, j = 0; x < c_winSize_x_cn; x += blockDim.x, ++j)
+                    for (int x = threadIdx.x, j = 0; x < c_winSize_x; x += blockDim.x, ++j)
                     {
-                        int diff = linearFilter(J, nextPt, x, y) - I_patch[i][j];
-                        errval += ::fabsf((float)diff);
+                        work_type I_val = I_patch[i][j];
+                        work_type J_val = Tex_J<cn>::read(nextPt.x + x + 0.5f, nextPt.y + y + 0.5f);
+
+                        work_type diff = J_val - I_val;
+
+                        accum(errval, abs_(diff));
                     }
                 }
 
                 reduce(errval, smem1, tid);
-
-                errval /= 32 * c_winSize_x_cn * c_winSize_y;
             }
 
             if (tid == 0)
@@ -485,45 +434,23 @@ namespace cv { namespace gpu { namespace device
                 nextPt.x += c_halfWin_x;
                 nextPt.y += c_halfWin_y;
 
-                status[blockIdx.x] = status_;
                 nextPts[blockIdx.x] = nextPt;
 
-                if (calcErr && !GET_MIN_EIGENVALS)
-                    err[blockIdx.x] = errval;
+                if (calcErr)
+                    err[blockIdx.x] = static_cast<float>(errval) / (cn * c_winSize_x * c_winSize_y);
             }
         }
 
-        template <int PATCH_X, int PATCH_Y>
-        void lkSparse_caller(DevMem2Db I, DevMem2Db J, DevMem2D_<short> dIdx, DevMem2D_<short> dIdy,
-            const float2* prevPts, float2* nextPts, uchar* status, float* err, bool GET_MIN_EIGENVALS, int ptcount, 
+        template <int cn, int PATCH_X, int PATCH_Y>
+        void lkSparse_caller(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
             int level, dim3 block, cudaStream_t stream)
         {
             dim3 grid(ptcount);
 
             if (level == 0 && err)
-            {
-                if (GET_MIN_EIGENVALS)
-                {
-                    cudaSafeCall( cudaFuncSetCacheConfig(lkSparse<PATCH_X, PATCH_Y, true, true>, cudaFuncCachePreferL1) );
-
-                    lkSparse<PATCH_X, PATCH_Y, true, true><<<grid, block>>>(I, J, dIdx, dIdy,
-                        prevPts, nextPts, status, err, level, I.rows, I.cols);
-                }
-                else
-                {
-                    cudaSafeCall( cudaFuncSetCacheConfig(lkSparse<PATCH_X, PATCH_Y, true, false>, cudaFuncCachePreferL1) );
-
-                    lkSparse<PATCH_X, PATCH_Y, true, false><<<grid, block>>>(I, J, dIdx, dIdy,
-                        prevPts, nextPts, status, err, level, I.rows, I.cols);
-                }
-            }
+                lkSparse<cn, PATCH_X, PATCH_Y, true><<<grid, block>>>(prevPts, nextPts, status, err, level, rows, cols);
             else
-            {
-                cudaSafeCall( cudaFuncSetCacheConfig(lkSparse<PATCH_X, PATCH_Y, false, false>, cudaFuncCachePreferL1) );
-
-                lkSparse<PATCH_X, PATCH_Y, false, false><<<grid, block>>>(I, J, dIdx, dIdy,
-                        prevPts, nextPts, status, err, level, I.rows, I.cols);
-            }
+                lkSparse<cn, PATCH_X, PATCH_Y, false><<<grid, block>>>(prevPts, nextPts, status, err, level, rows, cols);
 
             cudaSafeCall( cudaGetLastError() );
 
@@ -531,110 +458,167 @@ namespace cv { namespace gpu { namespace device
                 cudaSafeCall( cudaDeviceSynchronize() );
         }
 
-        void lkSparse_gpu(DevMem2Db I, DevMem2Db J, DevMem2D_<short> dIdx, DevMem2D_<short> dIdy,
-            const float2* prevPts, float2* nextPts, uchar* status, float* err, bool GET_MIN_EIGENVALS, int ptcount, 
+        void lkSparse1_gpu(DevMem2Df I, DevMem2Df J, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
             int level, dim3 block, dim3 patch, cudaStream_t stream)
         {
-            typedef void (*func_t)(DevMem2Db I, DevMem2Db J, DevMem2D_<short> dIdx, DevMem2D_<short> dIdy,
-                const float2* prevPts, float2* nextPts, uchar* status, float* err, bool GET_MIN_EIGENVALS, int ptcount, 
+            typedef void (*func_t)(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
                 int level, dim3 block, cudaStream_t stream);
 
-            static const func_t funcs[5][5] = 
+            static const func_t funcs[5][5] =
             {
-                {lkSparse_caller<1, 1>, lkSparse_caller<2, 1>, lkSparse_caller<3, 1>, lkSparse_caller<4, 1>, lkSparse_caller<5, 1>},
-                {lkSparse_caller<1, 2>, lkSparse_caller<2, 2>, lkSparse_caller<3, 2>, lkSparse_caller<4, 2>, lkSparse_caller<5, 2>},
-                {lkSparse_caller<1, 3>, lkSparse_caller<2, 3>, lkSparse_caller<3, 3>, lkSparse_caller<4, 3>, lkSparse_caller<5, 3>},
-                {lkSparse_caller<1, 4>, lkSparse_caller<2, 4>, lkSparse_caller<3, 4>, lkSparse_caller<4, 4>, lkSparse_caller<5, 4>},
-                {lkSparse_caller<1, 5>, lkSparse_caller<2, 5>, lkSparse_caller<3, 5>, lkSparse_caller<4, 5>, lkSparse_caller<5, 5>}
-            };            
+                {lkSparse_caller<1, 1, 1>, lkSparse_caller<1, 2, 1>, lkSparse_caller<1, 3, 1>, lkSparse_caller<1, 4, 1>, lkSparse_caller<1, 5, 1>},
+                {lkSparse_caller<1, 1, 2>, lkSparse_caller<1, 2, 2>, lkSparse_caller<1, 3, 2>, lkSparse_caller<1, 4, 2>, lkSparse_caller<1, 5, 2>},
+                {lkSparse_caller<1, 1, 3>, lkSparse_caller<1, 2, 3>, lkSparse_caller<1, 3, 3>, lkSparse_caller<1, 4, 3>, lkSparse_caller<1, 5, 3>},
+                {lkSparse_caller<1, 1, 4>, lkSparse_caller<1, 2, 4>, lkSparse_caller<1, 3, 4>, lkSparse_caller<1, 4, 4>, lkSparse_caller<1, 5, 4>},
+                {lkSparse_caller<1, 1, 5>, lkSparse_caller<1, 2, 5>, lkSparse_caller<1, 3, 5>, lkSparse_caller<1, 4, 5>, lkSparse_caller<1, 5, 5>}
+            };
 
-            funcs[patch.y - 1][patch.x - 1](I, J, dIdx, dIdy,
-                prevPts, nextPts, status, err, GET_MIN_EIGENVALS, ptcount, 
+            bindTexture(&tex_If, I);
+            bindTexture(&tex_Jf, J);
+
+            funcs[patch.y - 1][patch.x - 1](I.rows, I.cols, prevPts, nextPts, status, err, ptcount,
                 level, block, stream);
         }
 
-        template <bool calcErr, bool GET_MIN_EIGENVALS>
-        __global__ void lkDense(const PtrStepb I, const PtrStepb J, const PtrStep<short> dIdx, const PtrStep<short> dIdy,
-            PtrStepf u, PtrStepf v, PtrStepf err, const int rows, const int cols)
+        void lkSparse4_gpu(DevMem2D_<float4> I, DevMem2D_<float4> J, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
+            int level, dim3 block, dim3 patch, cudaStream_t stream)
         {
-            const int x = blockIdx.x * blockDim.x + threadIdx.x;
-            const int y = blockIdx.y * blockDim.y + threadIdx.y;
+            typedef void (*func_t)(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
+                int level, dim3 block, cudaStream_t stream);
+
+            static const func_t funcs[5][5] =
+            {
+                {lkSparse_caller<4, 1, 1>, lkSparse_caller<4, 2, 1>, lkSparse_caller<4, 3, 1>, lkSparse_caller<4, 4, 1>, lkSparse_caller<4, 5, 1>},
+                {lkSparse_caller<4, 1, 2>, lkSparse_caller<4, 2, 2>, lkSparse_caller<4, 3, 2>, lkSparse_caller<4, 4, 2>, lkSparse_caller<4, 5, 2>},
+                {lkSparse_caller<4, 1, 3>, lkSparse_caller<4, 2, 3>, lkSparse_caller<4, 3, 3>, lkSparse_caller<4, 4, 3>, lkSparse_caller<4, 5, 3>},
+                {lkSparse_caller<4, 1, 4>, lkSparse_caller<4, 2, 4>, lkSparse_caller<4, 3, 4>, lkSparse_caller<4, 4, 4>, lkSparse_caller<4, 5, 4>},
+                {lkSparse_caller<4, 1, 5>, lkSparse_caller<4, 2, 5>, lkSparse_caller<4, 3, 5>, lkSparse_caller<4, 4, 5>, lkSparse_caller<4, 5, 5>}
+            };
+
+            bindTexture(&tex_If4, I);
+            bindTexture(&tex_Jf4, J);
+
+            funcs[patch.y - 1][patch.x - 1](I.rows, I.cols, prevPts, nextPts, status, err, ptcount,
+                level, block, stream);
+        }
+
+        template <bool calcErr>
+        __global__ void lkDense(PtrStepf u, PtrStepf v, const PtrStepf prevU, const PtrStepf prevV, PtrStepf err, const int rows, const int cols)
+        {
+            extern __shared__ int smem[];
+
+            const int patchWidth  = blockDim.x + 2 * c_halfWin_x;
+            const int patchHeight = blockDim.y + 2 * c_halfWin_y;
+
+            int* I_patch = smem;
+            int* dIdx_patch = I_patch + patchWidth * patchHeight;
+            int* dIdy_patch = dIdx_patch + patchWidth * patchHeight;
+
+            const int xBase = blockIdx.x * blockDim.x;
+            const int yBase = blockIdx.y * blockDim.y;
+
+            for (int i = threadIdx.y; i < patchHeight; i += blockDim.y)
+            {
+                for (int j = threadIdx.x; j < patchWidth; j += blockDim.x)
+                {
+                    float x = xBase - c_halfWin_x + j + 0.5f;
+                    float y = yBase - c_halfWin_y + i + 0.5f;
+
+                    I_patch[i * patchWidth + j] = tex2D(tex_Ib, x, y);
+
+                    // Sharr Deriv
+
+                    dIdx_patch[i * patchWidth + j] = 3 * tex2D(tex_Ib, x+1, y-1) + 10 * tex2D(tex_Ib, x+1, y) + 3 * tex2D(tex_Ib, x+1, y+1) -
+                                                    (3 * tex2D(tex_Ib, x-1, y-1) + 10 * tex2D(tex_Ib, x-1, y) + 3 * tex2D(tex_Ib, x-1, y+1));
+
+                    dIdy_patch[i * patchWidth + j] = 3 * tex2D(tex_Ib, x-1, y+1) + 10 * tex2D(tex_Ib, x, y+1) + 3 * tex2D(tex_Ib, x+1, y+1) -
+                                                    (3 * tex2D(tex_Ib, x-1, y-1) + 10 * tex2D(tex_Ib, x, y-1) + 3 * tex2D(tex_Ib, x+1, y-1));
+                }
+            }
+
+            __syncthreads();
+
+            const int x = xBase + threadIdx.x;
+            const int y = yBase + threadIdx.y;
 
             if (x >= cols || y >= rows)
                 return;
 
-            // extract the patch from the first image, compute covariation matrix of derivatives
-            
-            float A11 = 0;
-            float A12 = 0;
-            float A22 = 0;
+            int A11i = 0;
+            int A12i = 0;
+            int A22i = 0;
 
             for (int i = 0; i < c_winSize_y; ++i)
-            {                
+            {
                 for (int j = 0; j < c_winSize_x; ++j)
                 {
-                    int ixval = dIdx(y - c_halfWin_y + i, x - c_halfWin_x + j);
-                    int iyval = dIdy(y - c_halfWin_y + i, x - c_halfWin_x + j);
+                    int dIdx = dIdx_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
+                    int dIdy = dIdy_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
 
-                    A11 += ixval * ixval;
-                    A12 += ixval * iyval;
-                    A22 += iyval * iyval;
+                    A11i += dIdx * dIdx;
+                    A12i += dIdx * dIdy;
+                    A22i += dIdy * dIdy;
                 }
             }
-            
-            A11 *= SCALE;
-            A12 *= SCALE;
-            A22 *= SCALE;
 
+            float A11 = A11i;
+            float A12 = A12i;
+            float A22 = A22i;
+
+            float D = A11 * A22 - A12 * A12;
+
+            if (D < numeric_limits<float>::epsilon())
             {
-                float D = A11 * A22 - A12 * A12;
-                float minEig = (A22 + A11 - ::sqrtf((A11 - A22) * (A11 - A22) + 4.f * A12 * A12)) / (2 * c_winSize_x * c_winSize_y);
+                if (calcErr)
+                    err(y, x) = numeric_limits<float>::max();
 
-                if (calcErr && GET_MIN_EIGENVALS)
-                    err(y, x) = minEig;
-            
-                if (minEig < c_minEigThreshold || D < numeric_limits<float>::epsilon())
-                    return;
-
-                D = 1.f / D;
-            
-                A11 *= D;
-                A12 *= D;
-                A22 *= D;
+                return;
             }
 
+            D = 1.f / D;
+
+            A11 *= D;
+            A12 *= D;
+            A22 *= D;
+
             float2 nextPt;
-            nextPt.x = x - c_halfWin_x + u(y, x);
-            nextPt.y = y - c_halfWin_y + v(y, x);
+            nextPt.x = x + prevU(y/2, x/2) * 2.0f;
+            nextPt.y = y + prevV(y/2, x/2) * 2.0f;
 
             for (int k = 0; k < c_iters; ++k)
             {
-                if (nextPt.x < -c_winSize_x || nextPt.x >= cols || nextPt.y < -c_winSize_y || nextPt.y >= rows)
-                    return;
+                if (nextPt.x < 0 || nextPt.x >= cols || nextPt.y < 0 || nextPt.y >= rows)
+                {
+                    if (calcErr)
+                        err(y, x) = numeric_limits<float>::max();
 
-                float b1 = 0;
-                float b2 = 0;
-                
+                    return;
+                }
+
+                int b1 = 0;
+                int b2 = 0;
+
                 for (int i = 0; i < c_winSize_y; ++i)
                 {
                     for (int j = 0; j < c_winSize_x; ++j)
                     {
-                        int I_val = I(y - c_halfWin_y + i, x - c_halfWin_x + j);
+                        int I = I_patch[(threadIdx.y + i) * patchWidth + threadIdx.x + j];
+                        int J = tex2D(tex_Jf, nextPt.x - c_halfWin_x + j + 0.5f, nextPt.y - c_halfWin_y + i + 0.5f);
 
-                        int diff = linearFilter(J, nextPt, j, i) - CV_DESCALE(I_val * (1 << W_BITS), W_BITS1 - 5);
-                        
-                        b1 += diff * dIdx(y - c_halfWin_y + i, x - c_halfWin_x + j);
-                        b2 += diff * dIdy(y - c_halfWin_y + i, x - c_halfWin_x + j);
+                        int diff = (J - I) * 32;
+
+                        int dIdx = dIdx_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
+                        int dIdy = dIdy_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
+
+                        b1 += diff * dIdx;
+                        b2 += diff * dIdy;
                     }
                 }
-
-                b1 *= SCALE;
-                b2 *= SCALE;
 
                 float2 delta;
                 delta.x = A12 * b2 - A22 * b1;
                 delta.y = A12 * b1 - A11 * b2;
-                    
+
                 nextPt.x += delta.x;
                 nextPt.y += delta.y;
 
@@ -642,57 +626,50 @@ namespace cv { namespace gpu { namespace device
                     break;
             }
 
-            u(y, x) = nextPt.x - x + c_halfWin_x;
-            v(y, x) = nextPt.y - y + c_halfWin_y;            
+            u(y, x) = nextPt.x - x;
+            v(y, x) = nextPt.y - y;
 
-            if (calcErr && !GET_MIN_EIGENVALS)
+            if (calcErr)
             {
-                float errval = 0.0f;
+                int errval = 0;
 
                 for (int i = 0; i < c_winSize_y; ++i)
                 {
                     for (int j = 0; j < c_winSize_x; ++j)
                     {
-                        int I_val = I(y - c_halfWin_y + i, x - c_halfWin_x + j);
-                        int diff = linearFilter(J, nextPt, j, i) - CV_DESCALE(I_val * (1 << W_BITS), W_BITS1 - 5);
-                        errval += ::fabsf((float)diff);
+                        int I = I_patch[(threadIdx.y + i) * patchWidth + threadIdx.x + j];
+                        int J = tex2D(tex_Jf, nextPt.x - c_halfWin_x + j + 0.5f, nextPt.y - c_halfWin_y + i + 0.5f);
+
+                        errval += ::abs(J - I);
                     }
                 }
 
-                errval /= 32 * c_winSize_x_cn * c_winSize_y;
-
-                err(y, x) = errval;
+                err(y, x) = static_cast<float>(errval) / (c_winSize_x * c_winSize_y);
             }
         }
 
-        void lkDense_gpu(DevMem2Db I, DevMem2Db J, DevMem2D_<short> dIdx, DevMem2D_<short> dIdy, 
-            DevMem2Df u, DevMem2Df v, DevMem2Df* err, bool GET_MIN_EIGENVALS, cudaStream_t stream)
+        void lkDense_gpu(DevMem2Db I, DevMem2Df J, DevMem2Df u, DevMem2Df v, DevMem2Df prevU, DevMem2Df prevV,
+                         DevMem2Df err, int2 winSize, cudaStream_t stream)
         {
-            dim3 block(32, 8);
+            dim3 block(16, 16);
             dim3 grid(divUp(I.cols, block.x), divUp(I.rows, block.y));
 
-            if (err)
+            bindTexture(&tex_Ib, I);
+            bindTexture(&tex_Jf, J);
+
+            int2 halfWin = make_int2((winSize.x - 1) / 2, (winSize.y - 1) / 2);
+            const int patchWidth  = block.x + 2 * halfWin.x;
+            const int patchHeight = block.y + 2 * halfWin.y;
+            size_t smem_size = 3 * patchWidth * patchHeight * sizeof(int);
+
+            if (err.data)
             {
-                if (GET_MIN_EIGENVALS)
-                {
-                    cudaSafeCall( cudaFuncSetCacheConfig(lkDense<true, true>, cudaFuncCachePreferL1) );
-
-                    lkDense<true, true><<<grid, block, 0, stream>>>(I, J, dIdx, dIdy, u, v, *err, I.rows, I.cols);
-                    cudaSafeCall( cudaGetLastError() );
-                }
-                else
-                {
-                    cudaSafeCall( cudaFuncSetCacheConfig(lkDense<true, false>, cudaFuncCachePreferL1) );
-
-                    lkDense<true, false><<<grid, block, 0, stream>>>(I, J, dIdx, dIdy, u, v, *err, I.rows, I.cols);
-                    cudaSafeCall( cudaGetLastError() );
-                }
+                lkDense<true><<<grid, block, smem_size, stream>>>(u, v, prevU, prevV, err, I.rows, I.cols);
+                cudaSafeCall( cudaGetLastError() );
             }
             else
             {
-                cudaSafeCall( cudaFuncSetCacheConfig(lkDense<false, false>, cudaFuncCachePreferL1) );
-
-                lkDense<false, false><<<grid, block, 0, stream>>>(I, J, dIdx, dIdy, u, v, PtrStepf(), I.rows, I.cols);
+                lkDense<false><<<grid, block, smem_size, stream>>>(u, v, prevU, prevV, PtrStepf(), I.rows, I.cols);
                 cudaSafeCall( cudaGetLastError() );
             }
 

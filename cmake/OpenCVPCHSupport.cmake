@@ -1,4 +1,4 @@
-# taken from http://www.vtk.org/Bug/view.php?id=1260 and slightly adjusted
+# taken from http://public.kitware.com/Bug/view.php?id=1260 and slightly adjusted
 
 # - Try to find precompiled headers support for GCC 3.4 and 4.x
 # Once done this will define:
@@ -24,10 +24,12 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     ENDIF()
 
     SET(_PCH_include_prefix "-I")
+    SET(_PCH_isystem_prefix "-isystem")
 
-ELSEIF(WIN32)
-    SET(PCHSupport_FOUND TRUE) # for experimental msvc support
+ELSEIF(CMAKE_GENERATOR MATCHES "^Visual.*$")
+    SET(PCHSupport_FOUND TRUE)
     SET(_PCH_include_prefix "/I")
+    SET(_PCH_isystem_prefix "/I")
 ELSE()
     SET(PCHSupport_FOUND FALSE)
 ENDIF()
@@ -50,7 +52,11 @@ MACRO(_PCH_GET_COMPILE_FLAGS _out_compile_flags)
 
     GET_DIRECTORY_PROPERTY(DIRINC INCLUDE_DIRECTORIES )
     FOREACH(item ${DIRINC})
-        LIST(APPEND ${_out_compile_flags} "${_PCH_include_prefix}\"${item}\"")
+        if(item MATCHES "^${OpenCV_SOURCE_DIR}/modules/")
+          LIST(APPEND ${_out_compile_flags} "${_PCH_include_prefix}\"${item}\"")
+        else()
+          LIST(APPEND ${_out_compile_flags} "${_PCH_isystem_prefix}\"${item}\"")
+        endif()
     ENDFOREACH(item)
 
     GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
@@ -72,6 +78,7 @@ MACRO(_PCH_WRITE_PCHDEP_CXX _targetName _include_file _dephelp)
         ADD_CUSTOM_COMMAND(
           OUTPUT "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "#include \\\"${_include_file}\\\"" >  "${${_dephelp}}"
+          COMMAND ${CMAKE_COMMAND} -E echo "int testfunction();"               >> "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "int testfunction()"                >> "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "{"                                 >> "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "    return 0;"                     >> "${${_dephelp}}"
@@ -82,6 +89,7 @@ MACRO(_PCH_WRITE_PCHDEP_CXX _targetName _include_file _dephelp)
         ADD_CUSTOM_COMMAND(
           OUTPUT "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "\\#include \\\"${_include_file}\\\"" >  "${${_dephelp}}"
+          COMMAND ${CMAKE_COMMAND} -E echo "int testfunction\\(\\)\\;"         >> "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "int testfunction\\(\\)"            >> "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "{"                                 >> "${${_dephelp}}"
           COMMAND ${CMAKE_COMMAND} -E echo "    \\return 0\\;"                 >> "${${_dephelp}}"
@@ -316,3 +324,17 @@ MACRO(ADD_NATIVE_PRECOMPILED_HEADER _targetName _input)
     endif()
 
 ENDMACRO(ADD_NATIVE_PRECOMPILED_HEADER)
+
+macro(ocv_add_precompiled_header_to_target the_target pch_header)
+  if(PCHSupport_FOUND AND ENABLE_PRECOMPILED_HEADERS AND EXISTS "${pch_header}")
+    if(CMAKE_GENERATOR MATCHES Visual)
+      string(REGEX REPLACE "hpp$" "cpp" ${the_target}_pch "${pch_header}")
+      add_native_precompiled_header(${the_target} ${pch_header})
+      unset(${the_target}_pch)
+    elseif(CMAKE_GENERATOR MATCHES Xcode)
+      add_native_precompiled_header(${the_target} ${pch_header})
+    elseif(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_GENERATOR MATCHES "Makefiles|Ninja")
+      add_precompiled_header(${the_target} ${pch_header})
+    endif()
+  endif()
+endmacro()

@@ -43,12 +43,7 @@
 #ifndef __OPENCV_PRECOMP_H__
 #define __OPENCV_PRECOMP_H__
 
-#if defined _MSC_VER && _MSC_VER >= 1200
-    // disable warnings related to inline functions
-    #pragma warning( disable: 4251 4711 4710 4514 )
-#endif
-
-#ifdef HAVE_CVCONFIG_H 
+#ifdef HAVE_CVCONFIG_H
 #include "cvconfig.h"
 #endif
 
@@ -201,9 +196,9 @@ inline bool checkScalar(const Mat& sc, int atype, int sckind, int akind)
     return sc.size() == Size(1, 1) || sc.size() == Size(1, cn) || sc.size() == Size(cn, 1) ||
            (sc.size() == Size(1, 4) && sc.type() == CV_64F && cn <= 4);
 }
-    
+
 void convertAndUnrollScalar( const Mat& sc, int buftype, uchar* scbuf, size_t blocksize );
-    
+
 }
 
 #endif /*_CXCORE_INTERNAL_H_*/

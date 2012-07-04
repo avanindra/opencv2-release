@@ -273,6 +273,9 @@ inline void sum_50t_176c(uchar **pp, uchar *sig, unsigned short *temp)
   ssig[9] =_mm_packus_epi16(_mm_srai_epi16(ttemp[18],2),_mm_srai_epi16(ttemp[19],2));
   ssig[10] =_mm_packus_epi16(_mm_srai_epi16(ttemp[20],2),_mm_srai_epi16(ttemp[21],2));
 #else
+  (void)pp;
+  (void)sig;
+  (void)temp;
   CV_Error( CV_StsNotImplemented, "Not supported without SSE2" );
 #endif
 }
@@ -311,19 +314,19 @@ int RandomizedTree::getIndex(uchar* patch_data) const
 }
 
 void RandomizedTree::train(std::vector<BaseKeypoint> const& base_set,
-                           RNG &rng, int depth, int views, size_t reduced_num_dim,
+                           RNG &rng, int _depth, int views, size_t reduced_num_dim,
                            int num_quant_bits)
 {
   PatchGenerator make_patch;
-  train(base_set, rng, make_patch, depth, views, reduced_num_dim, num_quant_bits);
+  train(base_set, rng, make_patch, _depth, views, reduced_num_dim, num_quant_bits);
 }
 
 void RandomizedTree::train(std::vector<BaseKeypoint> const& base_set,
                            RNG &rng, PatchGenerator &make_patch,
-                           int depth, int views, size_t reduced_num_dim,
+                           int _depth, int views, size_t reduced_num_dim,
                            int num_quant_bits)
 {
-  init((int)base_set.size(), depth, rng);
+  init((int)base_set.size(), _depth, rng);
 
   Mat patch;
 
@@ -381,10 +384,10 @@ void RandomizedTree::freePosteriors(int which)
    classes_ = -1;
 }
 
-void RandomizedTree::init(int num_classes, int depth, RNG &rng)
+void RandomizedTree::init(int num_classes, int _depth, RNG &rng)
 {
-  depth_ = depth;
-  num_leaves_ = 1 << depth;        // 2**d
+  depth_ = _depth;
+  num_leaves_ = 1 << _depth;       // 2**d
   int num_nodes = num_leaves_ - 1; // 2**d - 1
 
   // Initialize probabilities and counts to 0
@@ -631,9 +634,9 @@ void RandomizedTree::savePosteriors(std::string url, bool append)
    for (int i=0; i<num_leaves_; i++) {
       float *post = posteriors_[i];
       char buf[20];
-      for (int i=0; i<classes_; i++) {
+      for (int j=0; j<classes_; j++) {
          sprintf(buf, "%.10e", *post++);
-         file << buf << ((i<classes_-1) ? " " : "");
+         file << buf << ((j<classes_-1) ? " " : "");
       }
       file << std::endl;
    }
@@ -645,8 +648,8 @@ void RandomizedTree::savePosteriors2(std::string url, bool append)
    std::ofstream file(url.c_str(), (append?std::ios::app:std::ios::out));
    for (int i=0; i<num_leaves_; i++) {
       uchar *post = posteriors2_[i];
-      for (int i=0; i<classes_; i++)
-         file << int(*post++) << (i<classes_-1?" ":"");
+      for (int j=0; j<classes_; j++)
+         file << int(*post++) << (j<classes_-1?" ":"");
       file << std::endl;
    }
    file.close();

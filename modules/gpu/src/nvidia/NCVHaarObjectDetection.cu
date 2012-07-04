@@ -231,7 +231,7 @@ __device__ Ncv32u d_outMaskPosition;
 
 __device__ void compactBlockWriteOutAnchorParallel(Ncv32u threadPassFlag, Ncv32u threadElem, Ncv32u *vectorOut)
 {
-#if __CUDA_ARCH__ >= 110
+#if __CUDA_ARCH__ && __CUDA_ARCH__ >= 110
     
     __shared__ Ncv32u shmem[NUM_THREADS_ANCHORSPARALLEL * 2];
     __shared__ Ncv32u numPassed;
@@ -587,7 +587,7 @@ __global__ void applyHaarClassifierClassifierParallel(Ncv32u *d_IImg, Ncv32u IIm
     }
     else
     {
-#if __CUDA_ARCH__ >= 110
+#if __CUDA_ARCH__ && __CUDA_ARCH__ >= 110
         if (bPass && !threadIdx.x)
         {
             Ncv32u outMaskOffset = atomicAdd(&d_outMaskPosition, 1);
@@ -687,6 +687,7 @@ struct applyHaarClassifierAnchorParallelFunctor
     template<class TList>
     void call(TList tl)
     {
+        (void)tl;
         applyHaarClassifierAnchorParallel <
             Loki::TL::TypeAt<TList, 0>::Result::value,
             Loki::TL::TypeAt<TList, 1>::Result::value,
@@ -796,6 +797,7 @@ struct applyHaarClassifierClassifierParallelFunctor
     template<class TList>
     void call(TList tl)
     {
+        (void)tl;
         applyHaarClassifierClassifierParallel <
             Loki::TL::TypeAt<TList, 0>::Result::value,
             Loki::TL::TypeAt<TList, 1>::Result::value,
@@ -876,6 +878,7 @@ struct initializeMaskVectorFunctor
     template<class TList>
     void call(TList tl)
     {
+        (void)tl;
         initializeMaskVector <
             Loki::TL::TypeAt<TList, 0>::Result::value,
             Loki::TL::TypeAt<TList, 1>::Result::value >
@@ -1622,16 +1625,16 @@ NCVStatus ncvDetectObjectsMultiScale_device(NCVMatrix<Ncv8u> &d_srcImg,
             continue;
         }
 
-        NcvSize32s srcRoi, srcIIRoi, scaledIIRoi, searchRoi;
+        NcvSize32s srcRoi_, srcIIRo_i, scaledIIRoi, searchRoi;
 
-        srcRoi.width = d_srcImg.width();
-        srcRoi.height = d_srcImg.height();
+        srcRoi_.width = d_srcImg.width();
+        srcRoi_.height = d_srcImg.height();
 
-        srcIIRoi.width = srcRoi.width + 1;
-        srcIIRoi.height = srcRoi.height + 1;
+        srcIIRo_i.width = srcRoi_.width + 1;
+        srcIIRo_i.height = srcRoi_.height + 1;
 
-        scaledIIRoi.width = srcIIRoi.width / scale;
-        scaledIIRoi.height = srcIIRoi.height / scale;
+        scaledIIRoi.width = srcIIRo_i.width / scale;
+        scaledIIRoi.height = srcIIRo_i.height / scale;
 
         searchRoi.width = scaledIIRoi.width - haar.ClassifierSize.width;
         searchRoi.height = scaledIIRoi.height - haar.ClassifierSize.height;
@@ -1659,12 +1662,12 @@ NCVStatus ncvDetectObjectsMultiScale_device(NCVMatrix<Ncv8u> &d_srcImg,
     {
         Ncv32u scale = scalesVector[i];
 
-        NcvSize32u srcRoi, scaledIIRoi, searchRoi;
+        NcvSize32u srcRoi_, scaledIIRoi, searchRoi;
         NcvSize32u srcIIRoi;
-        srcRoi.width = d_srcImg.width();
-        srcRoi.height = d_srcImg.height();
-        srcIIRoi.width = srcRoi.width + 1;
-        srcIIRoi.height = srcRoi.height + 1;
+        srcRoi_.width = d_srcImg.width();
+        srcRoi_.height = d_srcImg.height();
+        srcIIRoi.width = srcRoi_.width + 1;
+        srcIIRoi.height = srcRoi_.height + 1;
         scaledIIRoi.width = srcIIRoi.width / scale;
         scaledIIRoi.height = srcIIRoi.height / scale;
         searchRoi.width = scaledIIRoi.width - haar.ClassifierSize.width;

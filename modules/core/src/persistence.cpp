@@ -46,7 +46,28 @@
 #include <deque>
 #include <iterator>
 #include <wchar.h>
-#include <zlib.h>
+
+#define USE_ZLIB 1
+
+#ifdef __APPLE__
+#  include "TargetConditionals.h"
+#  if (defined TARGET_OS_IPHONE && TARGET_OS_IPHONE) || (defined TARGET_IPHONE_SIMULATOR && TARGET_IPHONE_SIMULATOR)
+#    undef USE_ZLIB
+#    define USE_ZLIB 0
+     typedef void* gzFile;
+#  endif
+#endif
+
+#if USE_ZLIB
+#  undef HAVE_UNISTD_H //to avoid redefinition
+#  ifndef _LFS64_LARGEFILE
+#    define _LFS64_LARGEFILE 0
+#  endif
+#  ifndef _FILE_OFFSET_BITS
+#    define _FILE_OFFSET_BITS 0
+#  endif
+#  include <zlib.h>
+#endif
 
 /****************************************************************************************\
 *                            Common macros and type definitions                          *
@@ -137,7 +158,7 @@ cv::string cv::FileStorage::getDefaultObjectName(const string& _filename)
 
 namespace cv
 {
-#if !defined(ANDROID) || defined(_GLIBCXX_USE_WCHAR_T)
+#if !defined(ANDROID) || (defined(_GLIBCXX_USE_WCHAR_T) && _GLIBCXX_USE_WCHAR_T)
 string fromUtf16(const WString& str)
 {
     cv::AutoBuffer<char> _buf(str.size()*4 + 1);
@@ -243,11 +264,11 @@ typedef struct CvFileStorage
     CvWriteString write_string;
     CvWriteComment write_comment;
     CvStartNextStream start_next_stream;
-    
+
     const char* strbuf;
     size_t strbufsize, strbufpos;
     std::deque<char>* outbuf;
-    
+
     bool is_opened;
 }
 CvFileStorage;
@@ -258,8 +279,10 @@ static void icvPuts( CvFileStorage* fs, const char* str )
         std::copy(str, str + strlen(str), std::back_inserter(*fs->outbuf));
     else if( fs->file )
         fputs( str, fs->file );
+#if USE_ZLIB
     else if( fs->gzfile )
         gzputs( fs->gzfile, str );
+#endif
     else
         CV_Error( CV_StsError, "The storage is not opened" );
 }
@@ -286,8 +309,10 @@ static char* icvGets( CvFileStorage* fs, char* str, int maxCount )
     }
     if( fs->file )
         return fgets( str, maxCount, fs->file );
+#if USE_ZLIB
     if( fs->gzfile )
         return gzgets( fs->gzfile, str, maxCount );
+#endif
     CV_Error( CV_StsError, "The storage is not opened" );
     return 0;
 }
@@ -298,8 +323,10 @@ static int icvEof( CvFileStorage* fs )
         return fs->strbufpos >= fs->strbufsize;
     if( fs->file )
         return feof(fs->file);
+#if USE_ZLIB
     if( fs->gzfile )
         return gzeof(fs->gzfile);
+#endif
     return false;
 }
 
@@ -307,8 +334,10 @@ static void icvCloseFile( CvFileStorage* fs )
 {
     if( fs->file )
         fclose( fs->file );
+#if USE_ZLIB
     else if( fs->gzfile )
         gzclose( fs->gzfile );
+#endif
     fs->file = 0;
     fs->gzfile = 0;
     fs->strbuf = 0;
@@ -320,8 +349,10 @@ static void icvRewind( CvFileStorage* fs )
 {
     if( fs->file )
         rewind(fs->file);
+#if USE_ZLIB
     else if( fs->gzfile )
         gzrewind(fs->gzfile);
+#endif
     fs->strbufpos = 0;
 }
 
@@ -519,10 +550,10 @@ icvClose( CvFileStorage* fs, std::string* out )
 {
     if( out )
         out->clear();
-    
+
     if( !fs )
         CV_Error( CV_StsNullPtr, "NULL double pointer to file storage" );
-    
+
     if( fs->is_opened )
     {
         if( fs->write_mode && (fs->file || fs->gzfile || fs->outbuf) )
@@ -536,10 +567,10 @@ icvClose( CvFileStorage* fs, std::string* out )
             if( fs->fmt == CV_STORAGE_FORMAT_XML )
                 icvPuts( fs, "</opencv_storage>\n" );
         }
-        
+
         icvCloseFile(fs);
     }
-        
+
     if( fs->outbuf && out )
     {
         out->resize(fs->outbuf->size());
@@ -554,21 +585,21 @@ cvReleaseFileStorage( CvFileStorage** p_fs )
 {
     if( !p_fs )
         CV_Error( CV_StsNullPtr, "NULL double pointer to file storage" );
-    
+
     if( *p_fs )
     {
         CvFileStorage* fs = *p_fs;
         *p_fs = 0;
-        
+
         icvClose(fs, 0);
-        
-        cvReleaseMemStorage( &fs->strstorage );        
+
+        cvReleaseMemStorage( &fs->strstorage );
         cvFree( &fs->buffer_start );
         cvReleaseMemStorage( &fs->memstorage );
-        
+
         if( fs->outbuf )
             delete fs->outbuf;
-        
+
         memset( fs, 0, sizeof(*fs) );
         cvFree( &fs );
     }
@@ -2673,7 +2704,7 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
     }
     else
         fnamelen = strlen(filename);
-    
+
     if( mem && append )
         CV_Error( CV_StsBadFlag, "CV_STORAGE_APPEND and CV_STORAGE_MEMORY are not currently compatible" );
 
@@ -2685,7 +2716,7 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
 
     fs->flags = CV_FILE_STORAGE;
     fs->write_mode = write_mode;
-    
+
     if( !mem )
     {
         fs->filename = (char*)cvMemStorageAlloc( fs->memstorage, fnamelen+1 );
@@ -2713,13 +2744,17 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
         }
         else
         {
+            #if USE_ZLIB
             char mode[] = { fs->write_mode ? 'w' : 'r', 'b', compression ? compression : '3', '\0' };
             fs->gzfile = gzopen(fs->filename, mode);
             if( !fs->gzfile )
                 goto _exit_;
+            #else
+            CV_Error(CV_StsNotImplemented, "There is no compressed file storage support in this configuration");
+            #endif
         }
     }
-    
+
     fs->roots = 0;
     fs->struct_indent = 0;
     fs->struct_flags = 0;
@@ -2728,10 +2763,10 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
     if( fs->write_mode )
     {
         int fmt = flags & CV_STORAGE_FORMAT_MASK;
-        
+
         if( mem )
             fs->outbuf = new std::deque<char>;
-        
+
         if( fmt == CV_STORAGE_FORMAT_AUTO && filename )
         {
             const char* dot_pos = filename + fnamelen - (isGZ ? 7 : 4);
@@ -2741,7 +2776,7 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
         }
         else
             fs->fmt = fmt != CV_STORAGE_FORMAT_AUTO ? fmt : CV_STORAGE_FORMAT_XML;
-        
+
         // we use factor=6 for XML (the longest characters (' and ") are encoded with 6 bytes (&apos; and &quot;)
         // and factor=4 for YAML ( as we use 4 bytes for non ASCII characters (e.g. \xAB))
         int buf_size = CV_FS_MAX_LEN*(fs->fmt == CV_STORAGE_FORMAT_XML ? 6 : 4) + 1024;
@@ -2843,7 +2878,7 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
             fs->strbuf = filename;
             fs->strbufsize = fnamelen;
         }
-        
+
         size_t buf_size = 1 << 20;
         const char* yaml_signature = "%YAML:";
         char buf[16];
@@ -2889,7 +2924,7 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
         fs->buffer = fs->buffer_end = 0;
     }
     fs->is_opened = true;
-    
+
 _exit_:
     if( fs )
     {
@@ -3092,7 +3127,7 @@ cvWriteRawData( CvFileStorage* fs, const void* _data, int len, const char* dt )
 
     if( !len )
         return;
-    
+
     if( !data0 )
         CV_Error( CV_StsNullPtr, "Null data pointer" );
 
@@ -3536,7 +3571,7 @@ icvReadMat( CvFileStorage* fs, CvFileNode* node )
     cols = cvReadIntByName( fs, node, "cols", -1 );
     dt = cvReadStringByName( fs, node, "dt", 0 );
 
-    if( rows < 0 || cols < 0 || dt < 0 )
+    if( rows < 0 || cols < 0 || !dt )
         CV_Error( CV_StsError, "Some of essential matrix attributes are absent" );
 
     elem_type = icvDecodeSimpleFormat( dt );
@@ -4604,7 +4639,7 @@ icvReadGraph( CvFileStorage* fs, CvFileNode* node )
     if( header_dt )
         header_size = icvCalcElemSize( header_dt, header_size );
 
-    if( vtx_dt > 0 )
+    if( vtx_dt )
     {
         src_vtx_size = icvCalcElemSize( vtx_dt, 0 );
         vtx_size = icvCalcElemSize( vtx_dt, vtx_size );
@@ -5164,7 +5199,7 @@ void FileStorage::release()
 
 string FileStorage::releaseAndGetString()
 {
-	string buf;
+    string buf;
     if( fs.obj && fs.obj->outbuf )
         icvClose(fs.obj, &buf);
     
@@ -5468,7 +5503,7 @@ void write( FileStorage& fs, const string& name, const SparseMat& value )
     Ptr<CvSparseMat> mat = (CvSparseMat*)value;
     cvWrite( *fs, name.size() ? name.c_str() : 0, mat );
 }
-    
+
 
 WriteStructContext::WriteStructContext(FileStorage& _fs, const string& name,
                    int flags, const string& typeName) : fs(&_fs)

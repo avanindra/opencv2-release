@@ -7,7 +7,7 @@ endif()
 
 set(the_description "The java bindings")
 ocv_add_module(java BINDINGS opencv_core opencv_imgproc OPTIONAL opencv_objdetect opencv_features2d opencv_video opencv_highgui opencv_ml opencv_calib3d opencv_photo opencv_nonfree)
-ocv_module_include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/cpp")
+ocv_module_include_directories("${CMAKE_CURRENT_SOURCE_DIR}/generator/src/cpp")
 
 # get list of modules to wrap
 string(REPLACE "opencv_" "" OPENCV_JAVA_MODULES "${OPENCV_MODULE_${the_module}_REQ_DEPS};${OPENCV_MODULE_${the_module}_OPT_DEPS}")
@@ -17,10 +17,10 @@ foreach(module ${OPENCV_JAVA_MODULES})
   endif()
 endforeach()
 
-set(GEN_JAVA "${CMAKE_CURRENT_SOURCE_DIR}/gen_java.py")
+set(GEN_JAVA "${CMAKE_CURRENT_SOURCE_DIR}/generator/gen_java.py")
 set(HDR_PARSER "${CMAKE_CURRENT_SOURCE_DIR}/../python/src2/hdr_parser.py")
-set(GEN_JAVADOC "${CMAKE_CURRENT_SOURCE_DIR}/gen_javadoc.py")
-set(RST_PARSER "${CMAKE_CURRENT_SOURCE_DIR}/rst_parser.py")
+set(GEN_JAVADOC "${CMAKE_CURRENT_SOURCE_DIR}/generator/gen_javadoc.py")
+set(RST_PARSER "${CMAKE_CURRENT_SOURCE_DIR}/generator/rst_parser.py")
 
 # add dependencies to cmake (we should rerun cmake if any of these scripts is modified)
 configure_file("${GEN_JAVA}" "${OpenCV_BINARY_DIR}/junk/gen_java.junk" COPYONLY)
@@ -33,8 +33,8 @@ set(generated_java_sources "")
 # setup raw java and cpp files generation (without javadoc and at temporary location)
 foreach(module ${OPENCV_JAVA_MODULES})
   # get list of module headers
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config/${module}.filelist")
-    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/config/${module}.filelist" module_headers)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/generator/config/${module}.filelist")
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/generator/config/${module}.filelist" module_headers)
     ocv_list_add_prefix(module_headers "${OPENCV_MODULE_opencv_${module}_LOCATION}/")
   else()
     set(module_headers "${OPENCV_MODULE_opencv_${module}_HEADERS}")
@@ -78,9 +78,10 @@ foreach(module ${OPENCV_JAVA_MODULES})
 endforeach()
 
 # get handwritten files used for wrappers generation
-file(GLOB handwrittren_h_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/*.hpp")
-file(GLOB handwrittren_cpp_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/*.cpp")
-file(GLOB handwrittren_java_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/java/*.java")
+file(GLOB handwrittren_h_sources "${CMAKE_CURRENT_SOURCE_DIR}/generator/src/cpp/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/generator/src/cpp/*.hpp")
+file(GLOB handwrittren_cpp_sources "${CMAKE_CURRENT_SOURCE_DIR}/generator/src/cpp/*.cpp")
+file(GLOB handwrittren_java_sources "${CMAKE_CURRENT_SOURCE_DIR}/generator/src/java/*.java")
+file(GLOB handwrittren_aidl_sources  "${CMAKE_CURRENT_SOURCE_DIR}/generator/src/java/*.aidl")
 
 # remove handwritten java files for disabled modules
 foreach(jfile ${handwrittren_java_sources})
@@ -92,7 +93,7 @@ endforeach()
 
 # remove VideoCapture wrapper if highgui is disabled
 if(NOT HAVE_opencv_highgui)
-  list(REMOVE_ITEM handwrittren_cpp_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/VideoCapture.cpp")
+  list(REMOVE_ITEM handwrittren_cpp_sources "${CMAKE_CURRENT_SOURCE_DIR}/generator/src/cpp/VideoCapture.cpp")
 endif()
 
 # create list of javadoc documented files
@@ -110,17 +111,19 @@ set(java_documented_headers_deps ${handwrittren_java_sources} ${generated_java_s
 #TODO: pass list of modules
 add_custom_command(
     OUTPUT ${documented_java_files}
-    COMMAND ${PYTHON_EXECUTABLE} "${GEN_JAVADOC}" "${CMAKE_CURRENT_SOURCE_DIR}/src/java" "${CMAKE_CURRENT_BINARY_DIR}" 2>"${CMAKE_CURRENT_BINARY_DIR}/get_javadoc_errors.log"
+    COMMAND ${PYTHON_EXECUTABLE} "${GEN_JAVADOC}" "${CMAKE_CURRENT_SOURCE_DIR}/generator/src/java" "${CMAKE_CURRENT_BINARY_DIR}" 2>"${CMAKE_CURRENT_BINARY_DIR}/get_javadoc_errors.log"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS ${java_documented_headers_deps}
 )
 
 # copy generated java files to the final location
 set(JAVA_OUTPUT_DIR "src/org/opencv")
+set(JAVA_INSTALL_ROOT "sdk/java")
+set(JNI_INSTALL_ROOT "sdk/native")
 
 # copy each documented header to the final destination
 set(java_files "")
-foreach(java_file ${documented_java_files})
+foreach(java_file ${documented_java_files} ${handwrittren_aidl_sources})
   get_filename_component(java_file_name "${java_file}" NAME)
   string(REPLACE "-jdoc.java" ".java" java_file_name "${java_file_name}")
   string(REPLACE "+" "/" java_file_name "${java_file_name}")
@@ -136,7 +139,7 @@ foreach(java_file ${documented_java_files})
 
   if(ANDROID)
     get_filename_component(install_subdir "${java_file_name}" PATH)
-    install(FILES "${OpenCV_BINARY_DIR}/${JAVA_OUTPUT_DIR}/${java_file_name}" DESTINATION ${JAVA_OUTPUT_DIR}/${install_subdir} COMPONENT main)
+    install(FILES "${OpenCV_BINARY_DIR}/${JAVA_OUTPUT_DIR}/${java_file_name}" DESTINATION ${JAVA_INSTALL_ROOT}/${JAVA_OUTPUT_DIR}/${install_subdir} COMPONENT main)
   endif()
 endforeach()
 
@@ -148,14 +151,13 @@ add_custom_target(${api_target} DEPENDS ${java_files} ${documented_java_files} $
 add_library(${the_module} SHARED ${handwrittren_h_sources} ${handwrittren_cpp_sources} ${generated_cpp_sources})
 if(BUILD_FAT_JAVA_LIB)
   set(__deps ${OPENCV_MODULE_${the_module}_DEPS} ${OPENCV_MODULES_BUILD})
-  list(REMOVE_ITEM __deps ${the_module})
+  list(REMOVE_ITEM __deps ${the_module} opencv_ts)
   ocv_list_unique(__deps)
   set(__extradeps ${__deps})
   ocv_list_filterout(__extradeps "^opencv_")
   if(__extradeps)
     list(REMOVE_ITEM __deps ${__extradeps})
   endif()
-
   target_link_libraries(${the_module} -Wl,-whole-archive ${__deps} -Wl,-no-whole-archive ${__extradeps} ${OPENCV_LINKER_LIBS})
 else()
   target_link_libraries(${the_module} ${OPENCV_MODULE_${the_module}_DEPS} ${OPENCV_LINKER_LIBS})
@@ -184,21 +186,22 @@ if(ANDROID)
   set(lib_proj_files "")
 
   # manifest, jni, Eclipse project
-  file(GLOB_RECURSE android_lib_project_files RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/android/" "${CMAKE_CURRENT_SOURCE_DIR}/android/*")
+  file(GLOB_RECURSE android_lib_project_files RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/android_lib/" "${CMAKE_CURRENT_SOURCE_DIR}/android_lib/*")
   list(REMOVE_ITEM android_lib_project_files "${ANDROID_MANIFEST_FILE}")
   foreach(f ${android_lib_project_files})
     if(NOT f MATCHES "\\.svn")
       add_custom_command(
                 OUTPUT "${OpenCV_BINARY_DIR}/${f}"
-                COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/android/${f}" "${OpenCV_BINARY_DIR}/${f}"
-                MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/android/${f}"
+                COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/android_lib/${f}" "${OpenCV_BINARY_DIR}/${f}"
+                MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/android_lib/${f}"
                 COMMENT "Generating ${f}"
                 )
 
       list(APPEND lib_proj_files "${OpenCV_BINARY_DIR}/${f}")
 
       if(NOT f MATCHES "jni/.+")
-        install(FILES "${OpenCV_BINARY_DIR}/${f}" DESTINATION . COMPONENT main)
+        get_filename_component(install_subdir "${f}" PATH)
+        install(FILES "${OpenCV_BINARY_DIR}/${f}" DESTINATION "${JAVA_INSTALL_ROOT}/${install_subdir}" COMPONENT main)
       endif()
     endif()
   endforeach()
@@ -227,29 +230,32 @@ if(ANDROID)
     add_custom_command(
         OUTPUT ${lib_target_files} "${OpenCV_BINARY_DIR}/${ANDROID_MANIFEST_FILE}"
         COMMAND ${CMAKE_COMMAND} -E remove ${lib_target_files}
-        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/android/${ANDROID_MANIFEST_FILE}" "${OpenCV_BINARY_DIR}/${ANDROID_MANIFEST_FILE}"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/android_lib/${ANDROID_MANIFEST_FILE}" "${OpenCV_BINARY_DIR}/${ANDROID_MANIFEST_FILE}"
         COMMAND ${ANDROID_EXECUTABLE} --silent create lib-project --path \"${OpenCV_BINARY_DIR}\" --target \"${lib_target_sdk_target}\" --name OpenCV --package org.opencv 2>\"${CMAKE_CURRENT_BINARY_DIR}/create_lib_project.log\"
-        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/android/${ANDROID_MANIFEST_FILE}" "${OpenCV_BINARY_DIR}/${ANDROID_MANIFEST_FILE}"
-        MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/android/${ANDROID_MANIFEST_FILE}"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/android_lib/${ANDROID_MANIFEST_FILE}" "${OpenCV_BINARY_DIR}/${ANDROID_MANIFEST_FILE}"
+        MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/android_lib/${ANDROID_MANIFEST_FILE}"
         DEPENDS ${lib_proj_files}
         COMMENT "Generating OpenCV Android library project. SDK target: ${lib_target_sdk_target}"
         )
-    install(FILES "${OpenCV_BINARY_DIR}/${ANDROID_PROJECT_PROPERTIES_FILE}" DESTINATION . COMPONENT main)
-    install(FILES "${OpenCV_BINARY_DIR}/${ANDROID_MANIFEST_FILE}" DESTINATION . COMPONENT main)
+    install(FILES "${OpenCV_BINARY_DIR}/${ANDROID_PROJECT_PROPERTIES_FILE}" DESTINATION ${JAVA_INSTALL_ROOT} COMPONENT main)
+    install(FILES "${OpenCV_BINARY_DIR}/${ANDROID_MANIFEST_FILE}" DESTINATION ${JAVA_INSTALL_ROOT} COMPONENT main)
+    # creating empty 'gen' and 'res' folders
+    install(CODE "MAKE_DIRECTORY(\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/sdk/java/gen\")" COMPONENT main)
+    install(CODE "MAKE_DIRECTORY(\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/sdk/java/res\")" COMPONENT main)
 
     if(ANT_EXECUTABLE AND ANDROID_TOOLS_Pkg_Revision GREATER 13)
       # build the library project
       # normally we should do this after a native part, but for a library project we can build the java part first
       add_custom_command(
-        OUTPUT "${OpenCV_BINARY_DIR}/bin/classes.jar"
+        OUTPUT "${OpenCV_BINARY_DIR}/bin/classes.jar" "${OpenCV_BINARY_DIR}/bin/.classes.jar.dephelper"
         COMMAND ${ANT_EXECUTABLE} -q -noinput -k debug
-        COMMAND ${CMAKE_COMMAND} -E touch "${OpenCV_BINARY_DIR}/bin/classes.jar" # needed because ant does not update the timestamp of updated jar
+        COMMAND ${CMAKE_COMMAND} -E touch "${OpenCV_BINARY_DIR}/bin/.classes.jar.dephelper" # can not rely on classes.jar because different versions of SDK update timestamp at different times
         WORKING_DIRECTORY "${OpenCV_BINARY_DIR}"
         DEPENDS ${lib_proj_files} ${lib_target_files} ${java_files}
         COMMENT "Building OpenCV Android library project"
         )
-      install(FILES "${OpenCV_BINARY_DIR}/bin/classes.jar" "${OpenCV_BINARY_DIR}/bin/jarlist.cache" "${OpenCV_BINARY_DIR}/bin/build.prop" DESTINATION bin COMPONENT main)
-      install(DIRECTORY "${OpenCV_BINARY_DIR}/bin/res" "${OpenCV_BINARY_DIR}/bin/classes" DESTINATION bin COMPONENT main)
+      #install(FILES "${OpenCV_BINARY_DIR}/bin/classes.jar" "${OpenCV_BINARY_DIR}/bin/jarlist.cache" "${OpenCV_BINARY_DIR}/bin/build.prop" DESTINATION bin COMPONENT main)
+      #install(DIRECTORY "${OpenCV_BINARY_DIR}/bin/res" "${OpenCV_BINARY_DIR}/bin/classes" DESTINATION bin COMPONENT main)
       list(APPEND lib_target_files "${OpenCV_BINARY_DIR}/bin/classes.jar")
     endif()
 
