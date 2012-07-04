@@ -1153,7 +1153,7 @@ CV_IMPL void cvFindExtrinsicCameraParams2( const CvMat* objectPoints,
                   int useExtrinsicGuess )
 {
     const int max_iter = 20;
-    Ptr<CvMat> matM, _Mxy, _m, _mn, matL, matJ;
+    Ptr<CvMat> matM, _Mxy, _m, _mn, matL;
 
     int i, count;
     double a[9], ar[9]={1,0,0,0,1,0,0,0,1}, R[9];
@@ -2366,7 +2366,8 @@ void cvStereoRectify( const CvMat* _cameraMatrix1, const CvMat* _cameraMatrix2,
     // calculate global Z rotation
     cvCrossProduct(&t,&uu,&ww);
     double nw = cvNorm(&ww, 0, CV_L2);
-    cvConvertScale(&ww, &ww, acos(fabs(c)/nt)/nw);
+    if (nw > 0.0)
+        cvConvertScale(&ww, &ww, acos(fabs(c)/nt)/nw);
     cvRodrigues2(&ww, &wR);
 
     // apply to both views
@@ -2607,7 +2608,7 @@ void cvGetOptimalNewCameraMatrix( const CvMat* cameraMatrix, const CvMat* distCo
 
         if( validPixROI )
         {
-            icvGetRectangles( cameraMatrix, distCoeffs, 0, newCameraMatrix, imgSize, inner, outer );
+            icvGetRectangles( cameraMatrix, distCoeffs, 0, &matM, imgSize, inner, outer );
             cv::Rect r = inner;
             r &= cv::Rect(0, 0, newImgSize.width, newImgSize.height);
             *validPixROI = r;

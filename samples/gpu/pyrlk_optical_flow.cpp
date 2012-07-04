@@ -13,21 +13,21 @@ using namespace std;
 using namespace cv;
 using namespace cv::gpu;
 
-void download(const GpuMat& d_mat, vector<Point2f>& vec)
+static void download(const GpuMat& d_mat, vector<Point2f>& vec)
 {
     vec.resize(d_mat.cols);
     Mat mat(1, d_mat.cols, CV_32FC2, (void*)&vec[0]);
     d_mat.download(mat);
 }
 
-void download(const GpuMat& d_mat, vector<uchar>& vec)
+static void download(const GpuMat& d_mat, vector<uchar>& vec)
 {
     vec.resize(d_mat.cols);
     Mat mat(1, d_mat.cols, CV_8UC1, (void*)&vec[0]);
     d_mat.download(mat);
 }
 
-void drawArrows(Mat& frame, const vector<Point2f>& prevPts, const vector<Point2f>& nextPts, const vector<uchar>& status, Scalar line_color = Scalar(0, 0, 255))
+static void drawArrows(Mat& frame, const vector<Point2f>& prevPts, const vector<Point2f>& nextPts, const vector<uchar>& status, Scalar line_color = Scalar(0, 0, 255))
 {
     for (size_t i = 0; i < prevPts.size(); ++i)
     {
@@ -74,7 +74,7 @@ struct DrawData
     GlArrays arr;
 };
 
-void drawCallback(void* userdata)
+static void drawCallback(void* userdata)
 {
     DrawData* data = static_cast<DrawData*>(userdata);
 
@@ -111,7 +111,7 @@ template <typename T> inline T mapValue(T x, T a, T b, T c, T d)
     return c + (d - c) * (x - a) / (b - a);
 }
 
-void getFlowField(const Mat& u, const Mat& v, Mat& flowField)
+static void getFlowField(const Mat& u, const Mat& v, Mat& flowField)
 {
     float maxDisplacement = 1.0f;
 
@@ -159,7 +159,6 @@ int main(int argc, const char* argv[])
         "{ win_size     | win_size       | 21    | specify windows size [PyrLK] }"
         "{ max_level    | max_level      | 3     | specify max level [PyrLK] }"
         "{ iters        | iters          | 30    | specify iterations count [PyrLK] }"
-        "{ deriv_lambda | deriv_lambda   | 0.5   | specify deriv lambda [PyrLK] }"
         "{ points       | points         | 4000  | specify points count [GoodFeatureToTrack] }"
         "{ min_dist     | min_dist       | 0     | specify minimal distance between points [GoodFeatureToTrack] }";
 
@@ -186,7 +185,6 @@ int main(int argc, const char* argv[])
     int winSize = cmd.get<int>("win_size");
     int maxLevel = cmd.get<int>("max_level");
     int iters = cmd.get<int>("iters");
-    double derivLambda = cmd.get<double>("deriv_lambda");
     int points = cmd.get<int>("points");
     double minDist = cmd.get<double>("min_dist");
 
@@ -235,7 +233,6 @@ int main(int argc, const char* argv[])
     d_pyrLK.winSize.height = winSize;
     d_pyrLK.maxLevel = maxLevel;
     d_pyrLK.iters = iters;
-    d_pyrLK.derivLambda = derivLambda;
 
     GpuMat d_frame0(frame0);
     GpuMat d_frame1(frame1);

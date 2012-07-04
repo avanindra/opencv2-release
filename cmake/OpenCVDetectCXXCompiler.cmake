@@ -44,6 +44,12 @@ if(MSVC AND CMAKE_C_COMPILER MATCHES "icc")
     set(CV_ICC   __INTEL_COMPILER_FOR_WINDOWS)
 endif()
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR (UNIX AND CV_ICC))
+  set(CV_COMPILER_IS_GNU TRUE)
+else()
+  set(CV_COMPILER_IS_GNU FALSE)
+endif()
+
 # ----------------------------------------------------------------------------
 # Detect GNU version:
 # ----------------------------------------------------------------------------
@@ -83,7 +89,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     endif()
 endif()
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES amd64.*|x86_64.*)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES amd64.*|x86_64.* OR CMAKE_GENERATOR MATCHES "Visual Studio.*Win64")
     set(X86_64 1)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES i686.*|i386.*|x86.*)
     set(X86 1)

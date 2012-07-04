@@ -53,7 +53,7 @@ string fourccToString(int fourcc)
 {
     return format("%c%c%c%c", fourcc & 255, (fourcc >> 8) & 255, (fourcc >> 16) & 255, (fourcc >> 24) & 255);
 }
-    
+
 const VideoFormat g_specific_fmt_list[] =
 {
     VideoFormat("avi", CV_FOURCC('X', 'V', 'I', 'D')),
@@ -63,11 +63,11 @@ const VideoFormat g_specific_fmt_list[] =
     VideoFormat("mkv", CV_FOURCC('X', 'V', 'I', 'D')),
     VideoFormat("mkv", CV_FOURCC('M', 'P', 'E', 'G')),
     VideoFormat("mkv", CV_FOURCC('M', 'J', 'P', 'G')),
-    
+
     VideoFormat("mov", CV_FOURCC('m', 'p', '4', 'v')),
     VideoFormat()
 };
-    
+
 }
 
 class CV_HighGuiTest : public cvtest::BaseTest
@@ -155,7 +155,7 @@ void CV_HighGuiTest::ImageTest(const string& dir)
     for(size_t i = 0; i < ext_num; ++i)
     {
         string ext = exts[i];
-        string full_name = "img." + ext;
+        string full_name = cv::tempfile(ext.c_str());
         ts->printf(ts->LOG, " full_name : %s\n", full_name.c_str());
 
         imwrite(full_name, image);
@@ -225,7 +225,7 @@ void CV_HighGuiTest::ImageTest(const string& dir)
 void CV_HighGuiTest::VideoTest(const string& dir, const cvtest::VideoFormat& fmt)
 {
     string src_file = dir + "../cv/shared/video_for_test.avi";
-    string tmp_name = format("video_%s.%s", cvtest::fourccToString(fmt.fourcc).c_str(), fmt.ext.c_str());
+    string tmp_name = cv::tempfile((cvtest::fourccToString(fmt.fourcc) + "."  + fmt.ext).c_str());
 
     ts->printf(ts->LOG, "reading video : %s and converting it to %s\n", src_file.c_str(), tmp_name.c_str());
 
@@ -246,7 +246,7 @@ void CV_HighGuiTest::VideoTest(const string& dir, const cvtest::VideoFormat& fmt
 
         if (!img)
             break;
-            
+
         frames.push_back(Mat(img).clone());
 
         if (writer == 0)
@@ -291,8 +291,8 @@ void CV_HighGuiTest::VideoTest(const string& dir, const cvtest::VideoFormat& fmt
         if (psnr < thresDbell)
         {
             printf("Too low psnr = %gdb\n", psnr);
-            imwrite("img.png", img);
-            imwrite("img1.png", img1);
+            // imwrite("img.png", img);
+            // imwrite("img1.png", img1);
             ts->set_failed_test_info(ts->FAIL_MISMATCH);
             break;
         }
@@ -323,7 +323,7 @@ void CV_HighGuiTest::SpecificImageTest(const string& dir)
 
         stringstream s_digit; s_digit << i;
 
-        string full_name = "img_"+s_digit.str()+".bmp";
+        string full_name = cv::tempfile((s_digit.str() + ".bmp").c_str());
         ts->printf(ts->LOG, " full_name : %s\n", full_name.c_str());
 
         imwrite(full_name, image);
@@ -393,9 +393,9 @@ void CV_HighGuiTest::SpecificVideoTest(const string& dir, const cvtest::VideoFor
 {
     string ext = fmt.ext;
     int fourcc = fmt.fourcc;
-        
+
     string fourcc_str = cvtest::fourccToString(fourcc);
-    const string video_file = "video_" + fourcc_str + "." + ext;
+    const string video_file = cv::tempfile((fourcc_str + "." + ext).c_str());
 
     Size frame_size(968 & -2, 757 & -2);
     VideoWriter writer(video_file, fourcc, 25, frame_size, true);
@@ -403,7 +403,7 @@ void CV_HighGuiTest::SpecificVideoTest(const string& dir, const cvtest::VideoFor
     if (!writer.isOpened())
     {
         // call it repeatedly for easier debugging
-        VideoWriter writer(video_file, fourcc, 25, frame_size, true);
+        VideoWriter writer2(video_file, fourcc, 25, frame_size, true);
         ts->printf(ts->LOG, "Creating a video in %s...\n", video_file.c_str());
         ts->printf(ts->LOG, "Cannot create VideoWriter object with codec %s.\n", fourcc_str.c_str());
         ts->set_failed_test_info(ts->FAIL_MISMATCH);
@@ -412,7 +412,7 @@ void CV_HighGuiTest::SpecificVideoTest(const string& dir, const cvtest::VideoFor
 
     const size_t IMAGE_COUNT = 30;
     vector<Mat> images;
-    
+
     for( size_t i = 0; i < IMAGE_COUNT; ++i )
     {
         string file_path = format("%s../python/images/QCIF_%02d.bmp", dir.c_str(), i);
@@ -432,7 +432,7 @@ void CV_HighGuiTest::SpecificVideoTest(const string& dir, const cvtest::VideoFor
                 if (img.at<Vec3b>(k, l) == Vec3b::all(0))
                     img.at<Vec3b>(k, l) = Vec3b(0, 255, 0);
                 else img.at<Vec3b>(k, l) = Vec3b(0, 0, 255);
-        
+
         resize(img, img, frame_size, 0.0, 0.0, INTER_CUBIC);
 
         images.push_back(img);

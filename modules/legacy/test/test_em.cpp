@@ -105,7 +105,9 @@ void generateData( Mat& data, Mat& labels, const vector<int>& sizes, const Mat& 
             else if( labelType == CV_32SC1 )
                 labels.at<int>(p, 0) = l;
             else
+            {
                 CV_DbgAssert(0);
+            }
         }
     }
 }
@@ -364,7 +366,7 @@ void CV_CvEMTest::run( int /*start_from*/ )
         int currCode = runCase(caseIndex++, params, trainData, trainLabels, testData, testLabels, sizes);
         code = currCode == cvtest::TS::OK ? code : currCode;
     }
-    
+
     ts->set_failed_test_info( code );
 }
 
@@ -380,7 +382,7 @@ protected:
         samples.at<float>(0,0) = 1;
         samples.at<float>(1,0) = 2;
         samples.at<float>(2,0) = 3;
-        
+
         Mat labels(samples.rows, 1, CV_32S);
 
         CvEMParams params;
@@ -396,7 +398,7 @@ protected:
 
         // Write out
 
-        string filename = tempfile() + ".xml";
+        string filename = cv::tempfile(".xml");
         {
             FileStorage fs = FileStorage(filename, FileStorage::WRITE);
             try

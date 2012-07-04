@@ -85,7 +85,6 @@ template<typename _Tp, int cn> class CV_EXPORTS Vec;
 template<typename _Tp, int m, int n> class CV_EXPORTS Matx;
 
 typedef std::string String;
-typedef std::basic_string<wchar_t> WString;
 
 class Mat;
 class SparseMat;
@@ -110,8 +109,12 @@ template<typename _Tp> class CV_EXPORTS MatIterator_;
 template<typename _Tp> class CV_EXPORTS MatConstIterator_;
 template<typename _Tp> class CV_EXPORTS MatCommaInitializer_;
 
+#if !defined(ANDROID) || (defined(_GLIBCXX_USE_WCHAR_T) && _GLIBCXX_USE_WCHAR_T)
+typedef std::basic_string<wchar_t> WString;
+
 CV_EXPORTS string fromUtf16(const WString& str);
 CV_EXPORTS WString toUtf16(const string& str);
+#endif
 
 CV_EXPORTS string format( const char* fmt, ... );
 CV_EXPORTS string tempfile( const char* suffix CV_DEFAULT(0));
@@ -1246,6 +1249,7 @@ public:
     ~Ptr();
     //! copy constructor. Copies the members and calls addref()
     Ptr(const Ptr& ptr);
+    template<typename _Tp2> Ptr(const Ptr<_Tp2>& ptr);
     //! copy operator. Calls ptr.addref() and release() before copying the members
     Ptr& operator = (const Ptr& ptr);
     //! increments the reference counter
@@ -1299,6 +1303,7 @@ public:
         GPU_MAT           = 9 << KIND_SHIFT
     };
     _InputArray();
+
     _InputArray(const Mat& m);
     _InputArray(const MatExpr& expr);
     template<typename _Tp> _InputArray(const _Tp* vec, int n);
@@ -1327,6 +1332,10 @@ public:
     virtual int depth(int i=-1) const;
     virtual int channels(int i=-1) const;
     virtual bool empty() const;
+
+#ifdef OPENCV_CAN_BREAK_BINARY_COMPATIBILITY
+    virtual ~_InputArray();
+#endif
 
     int flags;
     void* obj;
@@ -1384,6 +1393,10 @@ public:
     virtual void create(int dims, const int* size, int type, int i=-1, bool allowTransposed=false, int fixedDepthMask=0) const;
     virtual void release() const;
     virtual void clear() const;
+
+#ifdef OPENCV_CAN_BREAK_BINARY_COMPATIBILITY
+    virtual ~_OutputArray();
+#endif
 };
 
 typedef const _InputArray& InputArray;
@@ -3970,7 +3983,7 @@ public:
     CV_WRAP virtual bool isOpened() const;
     //! closes the file and releases all the memory buffers
     CV_WRAP virtual void release();
-    //! closes the file, releases all the memory buffers and returns the text string    
+    //! closes the file, releases all the memory buffers and returns the text string
     CV_WRAP string releaseAndGetString();
 
     //! returns the first element of the top-level mapping
@@ -4308,6 +4321,7 @@ public:
     CV_WRAP_AS(setMat) void set(const string& name, const Mat& value);
     CV_WRAP_AS(setMatVector) void set(const string& name, const vector<Mat>& value);
     CV_WRAP_AS(setAlgorithm) void set(const string& name, const Ptr<Algorithm>& value);
+    template<typename _Tp> void set(const string& name, const Ptr<_Tp>& value);
 
     void set(const char* name, int value);
     void set(const char* name, double value);
@@ -4316,6 +4330,7 @@ public:
     void set(const char* name, const Mat& value);
     void set(const char* name, const vector<Mat>& value);
     void set(const char* name, const Ptr<Algorithm>& value);
+    template<typename _Tp> void set(const char* name, const Ptr<_Tp>& value);
 
     CV_WRAP string paramHelp(const string& name) const;
     int paramType(const char* name) const;
@@ -4391,6 +4406,16 @@ public:
                   Ptr<Algorithm>& value, bool readOnly=false,
                   Ptr<Algorithm> (Algorithm::*getter)()=0,
                   void (Algorithm::*setter)(const Ptr<Algorithm>&)=0,
+                  const string& help=string());
+    template<typename _Tp, typename _Base> void addParam(Algorithm& algo, const char* name,
+                  Ptr<_Tp>& value, bool readOnly=false,
+                  Ptr<_Tp> (Algorithm::*getter)()=0,
+                  void (Algorithm::*setter)(const Ptr<_Tp>&)=0,
+                  const string& help=string());
+    template<typename _Tp> void addParam(Algorithm& algo, const char* name,
+                  Ptr<_Tp>& value, bool readOnly=false,
+                  Ptr<_Tp> (Algorithm::*getter)()=0,
+                  void (Algorithm::*setter)(const Ptr<_Tp>&)=0,
                   const string& help=string());
 protected:
     AlgorithmInfoData* data;

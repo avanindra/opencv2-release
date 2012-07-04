@@ -27,10 +27,6 @@
  *************************************************************************/
 
 #include "precomp.hpp"
-
-#ifdef _MSC_VER
-#pragma warning(disable: 4996)
-#endif
 #include "opencv2/flann/flann.hpp"
 
 namespace cvflann
@@ -40,7 +36,7 @@ namespace cvflann
     */
     flann_distance_t flann_distance_type_ = FLANN_DIST_L2;
     flann_distance_t flann_distance_type() { return flann_distance_type_; }
-    
+
     /**
      * Set distance type to used
      * \deprecated
@@ -56,6 +52,6 @@ namespace cvflann
         }
         flann_distance_type_ = distance_type;
     }
-    
+
     void dummyfunc() {}
 }

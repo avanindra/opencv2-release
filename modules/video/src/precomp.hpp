@@ -43,11 +43,7 @@
 #ifndef __OPENCV_PRECOMP_H__
 #define __OPENCV_PRECOMP_H__
 
-#if _MSC_VER >= 1200
-#pragma warning( disable: 4251 4710 4711 4514 4996 )
-#endif
-
-#ifdef HAVE_CVCONFIG_H 
+#ifdef HAVE_CVCONFIG_H
 #include "cvconfig.h"
 #endif
 
@@ -55,6 +51,8 @@
 #include "opencv2/video/background_segm.hpp"
 #include "opencv2/imgproc/imgproc_c.h"
 #include "opencv2/core/internal.hpp"
+
+#include <list>
 
 #ifdef HAVE_TEGRA_OPTIMIZATION
 #include "opencv2/video/video_tegra.hpp"

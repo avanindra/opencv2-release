@@ -7,11 +7,11 @@ if(BUILD_ZLIB)
   ocv_clear_vars(ZLIB_FOUND)
 else()
   include(FindZLIB)
+  if(ZLIB_VERSION_STRING)
+    #cmake 2.8.2 bug - it fails to determine zlib version
+    unset(ZLIB_VERSION_STRING CACHE)
+  endif()
   if(ZLIB_FOUND)
-    if(ZLIB_VERSION_STRING)
-      #cmake 2.8.2 bug - it fails to determine zlib version
-      unset(ZLIB_VERSION_STRING CACHE)
-    endif()
     ocv_parse_header2(ZLIB "${ZLIB_INCLUDE_DIR}/zlib.h" ZLIB_VERSION "")
   endif()
   if(ZLIB_FOUND AND ANDROID)
@@ -59,6 +59,16 @@ endif()
 
 if(TIFF_BIGTIFF_VERSION AND NOT TIFF_VERSION_BIG)
   set(TIFF_VERSION_BIG ${TIFF_BIGTIFF_VERSION})
+endif()
+
+if(NOT TIFF_VERSION_STRING AND TIFF_INCLUDE_DIR)
+  list(GET TIFF_INCLUDE_DIR 0 _TIFF_INCLUDE_DIR)
+  if(EXISTS "${_TIFF_INCLUDE_DIR}/tiffvers.h")
+    file(STRINGS "${_TIFF_INCLUDE_DIR}/tiffvers.h" tiff_version_str REGEX "^#define[\t ]+TIFFLIB_VERSION_STR[\t ]+\"LIBTIFF, Version .*")
+    string(REGEX REPLACE "^#define[\t ]+TIFFLIB_VERSION_STR[\t ]+\"LIBTIFF, Version +([^ \\n]*).*" "\\1" TIFF_VERSION_STRING "${tiff_version_str}")
+    unset(tiff_version_str)
+  endif()
+  unset(_TIFF_INCLUDE_DIR)
 endif()
 
 # --- libjpeg (optional) ---

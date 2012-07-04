@@ -252,7 +252,7 @@ NCVStatus memSegCopyHelper2D(void *dst, Ncv32u dstPitch, NCVMemoryType dstType,
 //===================================================================
 
 
-NCVMemStackAllocator::NCVMemStackAllocator(Ncv32u alignment)
+NCVMemStackAllocator::NCVMemStackAllocator(Ncv32u alignment_)
     :
     currentSize(0),
     _maxSize(0),
@@ -260,23 +260,23 @@ NCVMemStackAllocator::NCVMemStackAllocator(Ncv32u alignment)
     begin(NULL),
     end(NULL),
     _memType(NCVMemoryTypeNone),
-    _alignment(alignment),
+    _alignment(alignment_),
     bReusesMemory(false)
 {
-    NcvBool bProperAlignment = (alignment & (alignment-1)) == 0;
+    NcvBool bProperAlignment = (alignment_ & (alignment_ - 1)) == 0;
     ncvAssertPrintCheck(bProperAlignment, "NCVMemStackAllocator ctor:: alignment not power of 2");
 }
 
 
-NCVMemStackAllocator::NCVMemStackAllocator(NCVMemoryType memT, size_t capacity, Ncv32u alignment, void *reusePtr)
+NCVMemStackAllocator::NCVMemStackAllocator(NCVMemoryType memT, size_t capacity, Ncv32u alignment_, void *reusePtr)
     :
     currentSize(0),
     _maxSize(0),
     allocBegin(NULL),
     _memType(memT),
-    _alignment(alignment)
+    _alignment(alignment_)
 {
-    NcvBool bProperAlignment = (alignment & (alignment-1)) == 0;
+    NcvBool bProperAlignment = (alignment_ & (alignment_ - 1)) == 0;
     ncvAssertPrintCheck(bProperAlignment, "NCVMemStackAllocator ctor:: _alignment not power of 2");
     ncvAssertPrintCheck(memT != NCVMemoryTypeNone, "NCVMemStackAllocator ctor:: Incorrect allocator type");
 
@@ -425,12 +425,12 @@ size_t NCVMemStackAllocator::maxSize(void) const
 //===================================================================
 
 
-NCVMemNativeAllocator::NCVMemNativeAllocator(NCVMemoryType memT, Ncv32u alignment)
+NCVMemNativeAllocator::NCVMemNativeAllocator(NCVMemoryType memT, Ncv32u alignment_)
     :
     currentSize(0),
     _maxSize(0),
     _memType(memT),
-    _alignment(alignment)
+    _alignment(alignment_)
 {
     ncvAssertPrintReturn(memT != NCVMemoryTypeNone, "NCVMemNativeAllocator ctor:: counting not permitted for this allocator type", );
 }
@@ -723,16 +723,16 @@ static NCVStatus drawRectsWrapperHost(T *h_dst,
 
         if (rect.x < dstWidth)
         {
-            for (Ncv32u i=rect.y; i<rect.y+rect.height && i<dstHeight; i++)
+            for (Ncv32u each=rect.y; each<rect.y+rect.height && each<dstHeight; each++)
             {
-                h_dst[i*dstStride+rect.x] = color;
+                h_dst[each*dstStride+rect.x] = color;
             }
         }
         if (rect.x+rect.width-1 < dstWidth)
         {
-            for (Ncv32u i=rect.y; i<rect.y+rect.height && i<dstHeight; i++)
+            for (Ncv32u each=rect.y; each<rect.y+rect.height && each<dstHeight; each++)
             {
-                h_dst[i*dstStride+rect.x+rect.width-1] = color;
+                h_dst[each*dstStride+rect.x+rect.width-1] = color;
             }
         }
         if (rect.y < dstHeight)
@@ -854,6 +854,7 @@ static NCVStatus drawRectsWrapperDevice(T *d_dst,
                                         T color,
                                         cudaStream_t cuStream)
 {
+    (void)cuStream;
     ncvAssertReturn(d_dst != NULL && d_rects != NULL, NCV_NULL_PTR);
     ncvAssertReturn(dstWidth > 0 && dstHeight > 0, NCV_DIMENSIONS_INVALID);
     ncvAssertReturn(dstStride >= dstWidth, NCV_INVALID_STEP);

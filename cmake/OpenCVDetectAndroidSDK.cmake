@@ -175,10 +175,11 @@ macro(android_get_compatible_target VAR)
   endif()
 endmacro()
 
+unset(__android_project_chain CACHE)
 #add_android_project(target_name ${path} NATIVE_DEPS opencv_core LIBRARY_DEPS ${OpenCV_BINARY_DIR} SDK_TARGET 11)
 macro(add_android_project target path)
   # parse arguments
-  set(android_proj_arglist NATIVE_DEPS LIBRARY_DEPS SDK_TARGET)
+  set(android_proj_arglist NATIVE_DEPS LIBRARY_DEPS SDK_TARGET IGNORE_JAVA)
   set(__varname "android_proj_")
   foreach(v ${android_proj_arglist})
     set(${__varname}${v} "")
@@ -205,16 +206,20 @@ macro(add_android_project target path)
   endif()
 
   # check native dependencies
-  ocv_check_dependencies(${android_proj_NATIVE_DEPS} opencv_java)
+  if(android_proj_IGNORE_JAVA)
+    ocv_check_dependencies(${android_proj_NATIVE_DEPS})
+  else()
+    ocv_check_dependencies(${android_proj_NATIVE_DEPS} opencv_java)
+  endif()
 
   if(OCV_DEPENDENCIES_FOUND AND android_proj_sdk_target AND ANDROID_EXECUTABLE AND ANT_EXECUTABLE AND ANDROID_TOOLS_Pkg_Revision GREATER 13 AND EXISTS "${path}/${ANDROID_MANIFEST_FILE}")
 
     project(${target})
     set(android_proj_bin_dir "${CMAKE_CURRENT_BINARY_DIR}/.build")
-   
+
     # get project sources
     file(GLOB_RECURSE android_proj_files RELATIVE "${path}" "${path}/res/*" "${path}/src/*")
-    ocv_list_filterout(android_proj_files ".svn")
+    ocv_list_filterout(android_proj_files "\\\\.svn")
 
     # copy sources out from the build tree
     set(android_proj_file_deps "")
@@ -253,9 +258,9 @@ macro(add_android_project target path)
 
     # build native part
     file(GLOB_RECURSE android_proj_jni_files "${path}/jni/*.c" "${path}/jni/*.h" "${path}/jni/*.cpp" "${path}/jni/*.hpp")
-    ocv_list_filterout(android_proj_jni_files ".svn")
+    ocv_list_filterout(android_proj_jni_files "\\\\.svn")
 
-    if(android_proj_jni_files AND EXISTS ${path}/jni/Android.mk)
+    if(android_proj_jni_files AND EXISTS ${path}/jni/Android.mk AND NOT DEFINED JNI_LIB_NAME)
       file(STRINGS "${path}/jni/Android.mk" JNI_LIB_NAME REGEX "LOCAL_MODULE[ ]*:=[ ]*.*" )
       string(REGEX REPLACE "LOCAL_MODULE[ ]*:=[ ]*([a-zA-Z_][a-zA-Z_0-9]*)[ ]*" "\\1" JNI_LIB_NAME "${JNI_LIB_NAME}")
 
@@ -274,27 +279,66 @@ macro(add_android_project target path)
         get_target_property(android_proj_jni_location "${JNI_LIB_NAME}" LOCATION)
         add_custom_command(TARGET ${JNI_LIB_NAME} POST_BUILD COMMAND ${CMAKE_STRIP} --strip-unneeded "${android_proj_jni_location}")
       endif()
-    else()
-      unset(JNI_LIB_NAME)
     endif()
 
     # build java part
-    add_custom_command(
-       OUTPUT "${android_proj_bin_dir}/bin/${target}-debug.apk"
-       COMMAND ${ANT_EXECUTABLE} -q -noinput -k debug
-       COMMAND ${CMAKE_COMMAND} -E touch "${android_proj_bin_dir}/bin/${target}-debug.apk" # needed because ant does not update the timestamp of updated apk
-       WORKING_DIRECTORY "${android_proj_bin_dir}"
-       MAIN_DEPENDENCY "${android_proj_bin_dir}/${ANDROID_MANIFEST_FILE}"
-       DEPENDS "${OpenCV_BINARY_DIR}/bin/classes.jar" opencv_java # as we are part of OpenCV we can just force this dependency
-       DEPENDS ${android_proj_file_deps} ${JNI_LIB_NAME})
+    if(android_proj_IGNORE_JAVA)
+      add_custom_command(
+         OUTPUT "${android_proj_bin_dir}/bin/${target}-debug.apk"
+         COMMAND ${ANT_EXECUTABLE} -q -noinput -k debug
+         COMMAND ${CMAKE_COMMAND} -E touch "${android_proj_bin_dir}/bin/${target}-debug.apk" # needed because ant does not update the timestamp of updated apk
+         WORKING_DIRECTORY "${android_proj_bin_dir}"
+         MAIN_DEPENDENCY "${android_proj_bin_dir}/${ANDROID_MANIFEST_FILE}"
+         DEPENDS ${android_proj_file_deps} ${JNI_LIB_NAME} ${__android_project_chain})
+    else()
+      add_custom_command(
+         OUTPUT "${android_proj_bin_dir}/bin/${target}-debug.apk"
+         COMMAND ${ANT_EXECUTABLE} -q -noinput -k debug
+         COMMAND ${CMAKE_COMMAND} -E touch "${android_proj_bin_dir}/bin/${target}-debug.apk" # needed because ant does not update the timestamp of updated apk
+         WORKING_DIRECTORY "${android_proj_bin_dir}"
+         MAIN_DEPENDENCY "${android_proj_bin_dir}/${ANDROID_MANIFEST_FILE}"
+         DEPENDS "${OpenCV_BINARY_DIR}/bin/.classes.jar.dephelper" opencv_java # as we are part of OpenCV we can just force this dependency
+         DEPENDS ${android_proj_file_deps} ${JNI_LIB_NAME} ${__android_project_chain})
+    endif()
+    set(__android_project_chain ${target} CACHE INTERNAL "auxiliary variable used for Android progects chaining")
+
+    unset(JNI_LIB_NAME)
 
     add_custom_target(${target} ALL SOURCES "${android_proj_bin_dir}/bin/${target}-debug.apk" )
-    add_dependencies(${target} opencv_java ${android_proj_native_deps})
+    if(NOT android_proj_IGNORE_JAVA)
+      add_dependencies(${target} opencv_java)
+    endif()
+    if(android_proj_native_deps)
+      add_dependencies(${target} ${android_proj_native_deps})
+    endif()
 
     # put the final .apk to the OpenCV's bin folder
     add_custom_command(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${android_proj_bin_dir}/bin/${target}-debug.apk" "${OpenCV_BINARY_DIR}/bin/${target}.apk")
     if(INSTALL_ANDROID_EXAMPLES AND "${target}" MATCHES "^example-")
-      install(FILES "${OpenCV_BINARY_DIR}/bin/${target}.apk" DESTINATION "bin" COMPONENT main)
+      #apk
+      install(FILES "${OpenCV_BINARY_DIR}/bin/${target}.apk" DESTINATION "samples" COMPONENT main)
+      get_filename_component(sample_dir "${path}" NAME)
+      #java part
+      foreach(f ${android_proj_files} ${ANDROID_MANIFEST_FILE})
+        get_filename_component(install_subdir "${f}" PATH)
+        install(FILES "${android_proj_bin_dir}/${f}" DESTINATION "samples/${sample_dir}/${install_subdir}" COMPONENT main)
+      endforeach()
+      #jni part + eclipse files
+      file(GLOB_RECURSE jni_files RELATIVE "${path}" "${path}/jni/*" "${path}/.cproject")
+      ocv_list_filterout(jni_files "\\\\.svn")
+      foreach(f ${jni_files} ".classpath" ".project" ".settings/org.eclipse.jdt.core.prefs")
+        get_filename_component(install_subdir "${f}" PATH)
+        install(FILES "${path}/${f}" DESTINATION "samples/${sample_dir}/${install_subdir}" COMPONENT main)
+      endforeach()
+      #update proj
+      if(android_proj_lib_deps_commands)
+        set(inst_lib_opt " --library ../../sdk/java")
+      endif()
+      install(CODE "EXECUTE_PROCESS(COMMAND ${ANDROID_EXECUTABLE} --silent update project --path . --target \"${android_proj_sdk_target}\" --name \"${target}\" ${inst_lib_opt}
+                                    WORKING_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/samples/${sample_dir}\"
+                                   )"  COMPONENT main)
+      #empty 'gen'
+      install(CODE "MAKE_DIRECTORY(\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/samples/${sample_dir}/gen\")" COMPONENT main)
     endif()
   endif()
 endmacro()

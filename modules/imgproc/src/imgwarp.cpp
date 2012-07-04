@@ -97,7 +97,6 @@ static inline void interpolateLanczos4( float x, float* coeffs )
     static const double cs[][2]=
     {{1, 0}, {-s45, -s45}, {0, 1}, {s45, -s45}, {-1, 0}, {s45, s45}, {0, -1}, {-s45, s45}};
 
-    int i;
     if( x < FLT_EPSILON )
     {
         for( int i = 0; i < 8; i++ )
@@ -108,7 +107,7 @@ static inline void interpolateLanczos4( float x, float* coeffs )
 
     float sum = 0;
     double y0=-(x+3)*CV_PI*0.25, s0 = sin(y0), c0=cos(y0);
-    for( i = 0; i < 8; i++ )
+    for(int i = 0; i < 8; i++ )
     {
         double y = -(x+3-i)*CV_PI*0.25;
         coeffs[i] = (float)((cs[i][0]*s0 + cs[i][1]*c0)/(y*y));
@@ -116,7 +115,7 @@ static inline void interpolateLanczos4( float x, float* coeffs )
     }
 
     sum = 1.f/sum;
-    for( i = 0; i < 8; i++ )
+    for(int i = 0; i < 8; i++ )
         coeffs[i] *= sum;
 }
 
@@ -783,18 +782,7 @@ struct VResizeCubicVec_32f
     }
 };
 
-typedef HResizeNoVec HResizeLinearVec_8u32s;
-typedef HResizeNoVec HResizeLinearVec_16u32f;
-typedef HResizeNoVec HResizeLinearVec_16s32f;
-typedef HResizeNoVec HResizeLinearVec_32f;
-typedef HResizeNoVec HResizeLinearVec_64f;
-
 #else
-
-typedef HResizeNoVec HResizeLinearVec_8u32s;
-typedef HResizeNoVec HResizeLinearVec_16u32f;
-typedef HResizeNoVec HResizeLinearVec_16s32f;
-typedef HResizeNoVec HResizeLinearVec_32f;
 
 typedef VResizeNoVec VResizeLinearVec_32s8u;
 typedef VResizeNoVec VResizeLinearVec_32f16u;
@@ -807,6 +795,12 @@ typedef VResizeNoVec VResizeCubicVec_32f16s;
 typedef VResizeNoVec VResizeCubicVec_32f;
 
 #endif
+
+typedef HResizeNoVec HResizeLinearVec_8u32s;
+typedef HResizeNoVec HResizeLinearVec_16u32f;
+typedef HResizeNoVec HResizeLinearVec_16s32f;
+typedef HResizeNoVec HResizeLinearVec_32f;
+typedef HResizeNoVec HResizeLinearVec_64f;
 
 
 template<typename T, typename WT, typename AT, int ONE, class VecOp>
@@ -878,8 +872,8 @@ struct VResizeLinear
         VecOp vecOp;
 
         int x = vecOp((const uchar**)src, (uchar*)dst, (const uchar*)beta, width);
-	    #if CV_ENABLE_UNROLLED
-		for( ; x <= width - 4; x += 4 )
+        #if CV_ENABLE_UNROLLED
+        for( ; x <= width - 4; x += 4 )
         {
             WT t0, t1;
             t0 = S0[x]*b0 + S1[x]*b1;
@@ -892,6 +886,34 @@ struct VResizeLinear
         #endif
         for( ; x < width; x++ )
             dst[x] = castOp(S0[x]*b0 + S1[x]*b1);
+    }
+};
+
+template<>
+struct VResizeLinear<uchar, int, short, FixedPtCast<int, uchar, INTER_RESIZE_COEF_BITS*2>, VResizeLinearVec_32s8u>
+{
+    typedef uchar value_type;
+    typedef int buf_type;
+    typedef short alpha_type;
+
+    void operator()(const buf_type** src, value_type* dst, const alpha_type* beta, int width ) const
+    {
+        alpha_type b0 = beta[0], b1 = beta[1];
+        const buf_type *S0 = src[0], *S1 = src[1];
+        VResizeLinearVec_32s8u vecOp;
+
+        int x = vecOp((const uchar**)src, (uchar*)dst, (const uchar*)beta, width);
+        #if CV_ENABLE_UNROLLED
+        for( ; x <= width - 4; x += 4 )
+        {
+            dst[x+0] = uchar(( ((b0 * (S0[x+0] >> 4)) >> 16) + ((b1 * (S1[x+0] >> 4)) >> 16) + 2)>>2);
+            dst[x+1] = uchar(( ((b0 * (S0[x+1] >> 4)) >> 16) + ((b1 * (S1[x+1] >> 4)) >> 16) + 2)>>2);
+            dst[x+2] = uchar(( ((b0 * (S0[x+2] >> 4)) >> 16) + ((b1 * (S1[x+2] >> 4)) >> 16) + 2)>>2);
+            dst[x+3] = uchar(( ((b0 * (S0[x+3] >> 4)) >> 16) + ((b1 * (S1[x+3] >> 4)) >> 16) + 2)>>2);
+        }
+        #endif
+        for( ; x < width; x++ )
+            dst[x] = uchar(( ((b0 * (S0[x] >> 4)) >> 16) + ((b1 * (S1[x] >> 4)) >> 16) + 2)>>2);
     }
 };
 
@@ -1035,7 +1057,7 @@ struct VResizeLanczos4
         CastOp castOp;
         VecOp vecOp;
         int k, x = vecOp((const uchar**)src, (uchar*)dst, (const uchar*)beta, width);
-		#if CV_ENABLE_UNROLLED
+        #if CV_ENABLE_UNROLLED
         for( ; x <= width - 4; x += 4 )
         {
             WT b = beta[0];
@@ -1091,14 +1113,14 @@ static void resizeGeneric_( const Mat& src, Mat& dst,
     const T* srows[MAX_ESIZE]={0};
     WT* rows[MAX_ESIZE]={0};
     int prev_sy[MAX_ESIZE];
-    int k, dy;
+    int dy;
     xmin *= cn;
     xmax *= cn;
 
     HResize hresize;
     VResize vresize;
 
-    for( k = 0; k < ksize; k++ )
+    for(int k = 0; k < ksize; k++ )
     {
         prev_sy[k] = -1;
         rows[k] = (WT*)_buffer + bufstep*k;
@@ -1107,9 +1129,9 @@ static void resizeGeneric_( const Mat& src, Mat& dst,
     // image resize is a separable operation. In case of not too strong
     for( dy = 0; dy < dsize.height; dy++, beta += ksize )
     {
-        int sy0 = yofs[dy], k, k0=ksize, k1=0, ksize2 = ksize/2;
+        int sy0 = yofs[dy], k0=ksize, k1=0, ksize2 = ksize/2;
 
-        for( k = 0; k < ksize; k++ )
+        for(int k = 0; k < ksize; k++ )
         {
             int sy = clip(sy0 - ksize2 + 1 + k, 0, ssize.height);
             for( k1 = std::max(k1, k); k1 < ksize; k1++ )
@@ -1130,7 +1152,7 @@ static void resizeGeneric_( const Mat& src, Mat& dst,
         if( k0 < ksize )
             hresize( srows + k0, rows + k0, ksize - k0, xofs, alpha,
                      ssize.width, dsize.width, cn, xmin, xmax );
-		vresize( (const WT**)rows, (T*)(dst.data + dst.step*dy), beta, dsize.width );
+        vresize( (const WT**)rows, (T*)(dst.data + dst.step*dy), beta, dsize.width );
     }
 }
 
@@ -1163,8 +1185,8 @@ static void resizeAreaFast_( const Mat& src, Mat& dst, const int* ofs, const int
         {
             const T* S = (const T*)(src.data + src.step*sy0) + xofs[dx];
             WT sum = 0;
-			k=0;
-			#if CV_ENABLE_UNROLLED
+            k=0;
+            #if CV_ENABLE_UNROLLED
             for( ; k <= area - 4; k += 4 )
                 sum += S[ofs[k]] + S[ofs[k+1]] + S[ofs[k+2]] + S[ofs[k+3]];
             #endif
@@ -1207,7 +1229,7 @@ struct DecimateAlpha
 };
 
 template<typename T, typename WT>
-static void resizeArea_( const Mat& src, Mat& dst, const DecimateAlpha* xofs, int xofs_count )
+static void resizeArea_( const Mat& src, Mat& dst, const DecimateAlpha* xofs, int xofs_count, double scale_y_)
 {
     Size ssize = src.size(), dsize = dst.size();
     int cn = src.channels();
@@ -1215,7 +1237,7 @@ static void resizeArea_( const Mat& src, Mat& dst, const DecimateAlpha* xofs, in
     AutoBuffer<WT> _buffer(dsize.width*2);
     WT *buf = _buffer, *sum = buf + dsize.width;
     int k, sy, dx, cur_dy = 0;
-    WT scale_y = (WT)ssize.height/dsize.height;
+    WT scale_y = (WT)scale_y_;
 
     CV_Assert( cn <= 4 );
     for( dx = 0; dx < dsize.width; dx++ )
@@ -1272,15 +1294,18 @@ static void resizeArea_( const Mat& src, Mat& dst, const DecimateAlpha* xofs, in
             WT beta1 = 1 - beta;
             T* D = (T*)(dst.data + dst.step*cur_dy);
             if( fabs(beta) < 1e-3 )
+            {
+                if(cur_dy >= dsize.height) return;
                 for( dx = 0; dx < dsize.width; dx++ )
                 {
-                    D[dx] = saturate_cast<T>(sum[dx] + buf[dx]);
+                    D[dx] = saturate_cast<T>((sum[dx] + buf[dx]) / min(scale_y, src.rows - cur_dy * scale_y));
                     sum[dx] = buf[dx] = 0;
                 }
+            }
             else
                 for( dx = 0; dx < dsize.width; dx++ )
                 {
-                    D[dx] = saturate_cast<T>(sum[dx] + buf[dx]*beta1);
+                    D[dx] = saturate_cast<T>((sum[dx] + buf[dx]* beta1)/ min(scale_y, src.rows - cur_dy*scale_y));
                     sum[dx] = buf[dx]*beta;
                     buf[dx] = 0;
                 }
@@ -1315,7 +1340,7 @@ typedef void (*ResizeAreaFastFunc)( const Mat& src, Mat& dst,
                                     int scale_x, int scale_y );
 
 typedef void (*ResizeAreaFunc)( const Mat& src, Mat& dst,
-                                const DecimateAlpha* xofs, int xofs_count );
+                                const DecimateAlpha* xofs, int xofs_count, double scale_y_);
 
 }
 
@@ -1329,11 +1354,11 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
         resizeGeneric_<
             HResizeLinear<uchar, int, short,
                 INTER_RESIZE_COEF_SCALE,
-				HResizeLinearVec_8u32s>,
+                HResizeLinearVec_8u32s>,
             VResizeLinear<uchar, int, short,
                 FixedPtCast<int, uchar, INTER_RESIZE_COEF_BITS*2>,
-				VResizeLinearVec_32s8u> >,
-		0,
+                VResizeLinearVec_32s8u> >,
+        0,
         resizeGeneric_<
             HResizeLinear<ushort, float, float, 1,
                 HResizeLinearVec_16u32f>,
@@ -1344,7 +1369,7 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
                 HResizeLinearVec_16s32f>,
             VResizeLinear<short, float, float, Cast<float, short>,
                 VResizeLinearVec_32f16s> >,
-		0,
+        0,
         resizeGeneric_<
             HResizeLinear<float, float, float, 1,
                 HResizeLinearVec_32f>,
@@ -1374,7 +1399,7 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
             HResizeCubic<short, float, float>,
             VResizeCubic<short, float, float, Cast<float, short>,
             VResizeCubicVec_32f16s> >,
-		0,
+        0,
         resizeGeneric_<
             HResizeCubic<float, float, float>,
             VResizeCubic<float, float, float, Cast<float, float>,
@@ -1396,10 +1421,10 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
         resizeGeneric_<HResizeLanczos4<ushort, float, float>,
             VResizeLanczos4<ushort, float, float, Cast<float, ushort>,
             VResizeNoVec> >,
-       	resizeGeneric_<HResizeLanczos4<short, float, float>,
+        resizeGeneric_<HResizeLanczos4<short, float, float>,
             VResizeLanczos4<short, float, float, Cast<float, short>,
             VResizeNoVec> >,
-		0,
+        0,
         resizeGeneric_<HResizeLanczos4<float, float, float>,
             VResizeLanczos4<float, float, float, Cast<float, float>,
             VResizeNoVec> >,
@@ -1412,8 +1437,8 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
     static ResizeAreaFastFunc areafast_tab[] =
     {
         resizeAreaFast_<uchar, int>, 0,
-		resizeAreaFast_<ushort, float>,
-		resizeAreaFast_<short, float>,
+        resizeAreaFast_<ushort, float>,
+        resizeAreaFast_<short, float>,
         0,
         resizeAreaFast_<float, float>,
         resizeAreaFast_<double, double>,
@@ -1498,7 +1523,6 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
 
         AutoBuffer<DecimateAlpha> _xofs(ssize.width*2);
         DecimateAlpha* xofs = _xofs;
-        double scale = 1.f/(scale_x*scale_y);
 
         for( dx = 0, k = 0; dx < dsize.width; dx++ )
         {
@@ -1512,7 +1536,7 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
                 assert( k < ssize.width*2 );
                 xofs[k].di = dx*cn;
                 xofs[k].si = (sx1-1)*cn;
-                xofs[k++].alpha = (float)((sx1 - fsx1)*scale);
+                xofs[k++].alpha = (float)((sx1 - fsx1) / min(scale_x, src.cols - fsx1));
             }
 
             for( sx = sx1; sx < sx2; sx++ )
@@ -1520,7 +1544,7 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
                 assert( k < ssize.width*2 );
                 xofs[k].di = dx*cn;
                 xofs[k].si = sx*cn;
-                xofs[k++].alpha = (float)scale;
+                xofs[k++].alpha = float(1.0 / min(scale_x, src.cols - fsx1));
             }
 
             if( fsx2 - sx2 > 1e-3 )
@@ -1528,11 +1552,10 @@ void cv::resize( InputArray _src, OutputArray _dst, Size dsize,
                 assert( k < ssize.width*2 );
                 xofs[k].di = dx*cn;
                 xofs[k].si = sx2*cn;
-                xofs[k++].alpha = (float)((fsx2 - sx2)*scale);
+                xofs[k++].alpha = (float)(min(fsx2 - sx2, 1.) / min(scale_x, src.cols - fsx1));
             }
         }
-
-        func( src, dst, xofs, k );
+        func( src, dst, xofs, k ,scale_y);
         return;
     }
 
@@ -2373,25 +2396,25 @@ static void remapLanczos4( const Mat& _src, Mat& _dst, const Mat& _xy,
                     for( i = 0; i < 8; i++, w += 8 )
                     {
                         int yi = y[i];
-                        const T* S = S0 + yi*sstep;
+                        const T* S1 = S0 + yi*sstep;
                         if( yi < 0 )
                             continue;
                         if( x[0] >= 0 )
-                            sum += (S[x[0]] - cv)*w[0];
+                            sum += (S1[x[0]] - cv)*w[0];
                         if( x[1] >= 0 )
-                            sum += (S[x[1]] - cv)*w[1];
+                            sum += (S1[x[1]] - cv)*w[1];
                         if( x[2] >= 0 )
-                            sum += (S[x[2]] - cv)*w[2];
+                            sum += (S1[x[2]] - cv)*w[2];
                         if( x[3] >= 0 )
-                            sum += (S[x[3]] - cv)*w[3];
+                            sum += (S1[x[3]] - cv)*w[3];
                         if( x[4] >= 0 )
-                            sum += (S[x[4]] - cv)*w[4];
+                            sum += (S1[x[4]] - cv)*w[4];
                         if( x[5] >= 0 )
-                            sum += (S[x[5]] - cv)*w[5];
+                            sum += (S1[x[5]] - cv)*w[5];
                         if( x[6] >= 0 )
-                            sum += (S[x[6]] - cv)*w[6];
+                            sum += (S1[x[6]] - cv)*w[6];
                         if( x[7] >= 0 )
-                            sum += (S[x[7]] - cv)*w[7];
+                            sum += (S1[x[7]] - cv)*w[7];
                     }
                     D[k] = castOp(sum);
                 }
@@ -2839,6 +2862,11 @@ void cv::warpAffine( InputArray _src, OutputArray _dst,
     CV_Assert( (M0.type() == CV_32F || M0.type() == CV_64F) && M0.rows == 2 && M0.cols == 3 );
     M0.convertTo(matM, matM.type());
 
+#ifdef HAVE_TEGRA_OPTIMIZATION
+    if( tegra::warpAffine(src, dst, M, flags, borderType, borderValue) )
+        return;
+#endif
+
     if( !(flags & WARP_INVERSE_MAP) )
     {
         double D = M[0]*M[4] - M[1]*M[3];
@@ -2850,22 +2878,6 @@ void cv::warpAffine( InputArray _src, OutputArray _dst,
         double b2 = -M[3]*M[2] - M[4]*M[5];
         M[2] = b1; M[5] = b2;
     }
-
-#ifdef HAVE_TEGRA_OPTIMIZATION
-    if (borderType == BORDER_REPLICATE)
-    {
-        if( tegra::warpAffine(src, dst, M, interpolation, borderType, borderValue) )
-        return;
-    }
-    else
-    {
-        double warp_mat[6];
-        Mat warp_m(2, 3, CV_64F, warp_mat);
-        M0.convertTo(warp_m, warp_m.type());
-        if( tegra::warpAffine(src, dst, warp_mat, interpolation, borderType, borderValue) )
-        return;
-    }
-#endif
 
     int x, y, x1, y1, width = dst.cols, height = dst.rows;
     AutoBuffer<int> _abdelta(width*2);
@@ -2965,8 +2977,8 @@ void cv::warpAffine( InputArray _src, OutputArray _dst,
                 remap( src, dpart, _XY, Mat(), interpolation, borderType, borderValue );
             else
             {
-                Mat matA(bh, bw, CV_16U, A);
-                remap( src, dpart, _XY, matA, interpolation, borderType, borderValue );
+                Mat _matA(bh, bw, CV_16U, A);
+                remap( src, dpart, _XY, _matA, interpolation, borderType, borderValue );
             }
         }
     }
@@ -2995,13 +3007,13 @@ void cv::warpPerspective( InputArray _src, OutputArray _dst, InputArray _M0,
     CV_Assert( (M0.type() == CV_32F || M0.type() == CV_64F) && M0.rows == 3 && M0.cols == 3 );
     M0.convertTo(matM, matM.type());
 
-    if( !(flags & WARP_INVERSE_MAP) )
-         invert(matM, matM);
-
 #ifdef HAVE_TEGRA_OPTIMIZATION
-    if( tegra::warpPerspective(src, dst, M, interpolation, borderType, borderValue) )
+    if( tegra::warpPerspective(src, dst, M, flags, borderType, borderValue) )
         return;
 #endif
+
+    if( !(flags & WARP_INVERSE_MAP) )
+         invert(matM, matM);
 
     int x, y, x1, y1, width = dst.cols, height = dst.rows;
 
@@ -3063,8 +3075,8 @@ void cv::warpPerspective( InputArray _src, OutputArray _dst, InputArray _M0,
                 remap( src, dpart, _XY, Mat(), interpolation, borderType, borderValue );
             else
             {
-                Mat matA(bh, bw, CV_16U, A);
-                remap( src, dpart, _XY, matA, interpolation, borderType, borderValue );
+                Mat _matA(bh, bw, CV_16U, A);
+                remap( src, dpart, _XY, _matA, interpolation, borderType, borderValue );
             }
         }
     }
@@ -3480,7 +3492,7 @@ void cvLinearPolar( const CvArr* srcarr, CvArr* dstarr,
     if( !CV_ARE_TYPES_EQ( src, dst ))
         CV_Error( CV_StsUnmatchedFormats, "" );
 
-	ssize.width = src->cols;
+    ssize.width = src->cols;
     ssize.height = src->rows;
     dsize.width = dst->cols;
     dsize.height = dst->rows;

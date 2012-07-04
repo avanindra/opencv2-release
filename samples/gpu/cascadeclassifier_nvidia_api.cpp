@@ -1,4 +1,4 @@
-#if _MSC_VER >= 1400
+#if defined _MSC_VER && _MSC_VER >= 1400
 #pragma warning( disable : 4201 4408 4127 4100)
 #endif
 
@@ -18,7 +18,7 @@ using namespace cv;
 
 
 #if !defined(HAVE_CUDA)
-int main( int argc, const char** argv )
+int main( int, const char** )
 {
     cout << "Please compile the library with CUDA support" << endl;
     return -1;

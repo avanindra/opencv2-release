@@ -45,7 +45,8 @@
 #ifdef HAVE_JPEG
 
 #ifdef _MSC_VER
-#pragma warning(disable: 4324 4611)
+//interaction between '_setjmp' and C++ object destruction is non-portable
+#pragma warning(disable: 4611)
 #endif
 
 #include <stdio.h>
@@ -69,11 +70,18 @@ extern "C" {
 namespace cv
 {
 
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4324) //structure was padded due to __declspec(align())
+#endif
 struct JpegErrorMgr
 {
     struct jpeg_error_mgr pub;
     jmp_buf setjmp_buffer;
 };
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
 
 struct JpegSource
 {
@@ -126,8 +134,7 @@ skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 }
 
 
-GLOBAL(void)
-jpeg_buffer_src(j_decompress_ptr cinfo, JpegSource* source)
+static void jpeg_buffer_src(j_decompress_ptr cinfo, JpegSource* source)
 {
     cinfo->src = &source->pub;
 
@@ -373,7 +380,6 @@ int my_jpeg_load_dht (struct jpeg_decompress_struct *info, unsigned char *dht,
 bool  JpegDecoder::readData( Mat& img )
 {
     bool result = false;
-    uchar* data = img.data;
     int step = (int)img.step;
     bool color = img.channels() > 1;
     JpegState* state = (JpegState*)m_state;
@@ -432,6 +438,7 @@ bool  JpegDecoder::readData( Mat& img )
             buffer = (*cinfo->mem->alloc_sarray)((j_common_ptr)cinfo,
                                               JPOOL_IMAGE, m_width*4, 1 );
 
+            uchar* data = img.data;
             for( ; m_height--; data += step )
             {
                 jpeg_read_scanlines( cinfo, buffer, 1 );
@@ -498,8 +505,7 @@ empty_output_buffer (j_compress_ptr cinfo)
     return TRUE;
 }
 
-GLOBAL(void)
-jpeg_buffer_dest(j_compress_ptr cinfo, JpegDestination* destination)
+static void jpeg_buffer_dest(j_compress_ptr cinfo, JpegDestination* destination)
 {
     cinfo->dest = &destination->pub;
 
@@ -527,21 +533,15 @@ ImageEncoder JpegEncoder::newEncoder() const
 
 bool  JpegEncoder::write( const Mat& img, const vector<int>& params )
 {
-    int quality = 95;
-
-    for( size_t i = 0; i < params.size(); i += 2 )
+    struct fileWrapper
     {
-        if( params[i] == CV_IMWRITE_JPEG_QUALITY )
-        {
-            quality = params[i+1];
-            quality = MIN(MAX(quality, 0), 100);
-        }
-    }
+        FILE* f;
 
+        fileWrapper() : f(0) {}
+        ~fileWrapper() { if(f) fclose(f); }
+    };
     bool result = false;
-    FILE* f = 0;
-    int _channels = img.channels();
-    int channels = _channels > 1 ? 3 : 1;
+    fileWrapper fw;
     int width = img.cols, height = img.rows;
 
     vector<uchar> out_buf(1 << 12);
@@ -558,10 +558,10 @@ bool  JpegEncoder::write( const Mat& img, const vector<int>& params )
 
     if( !m_buf )
     {
-        f = fopen( m_filename.c_str(), "wb" );
-        if( !f )
+        fw.f = fopen( m_filename.c_str(), "wb" );
+        if( !fw.f )
             goto _exit_;
-        jpeg_stdio_dest( &cinfo, f );
+        jpeg_stdio_dest( &cinfo, fw.f );
     }
     else
     {
@@ -578,8 +578,22 @@ bool  JpegEncoder::write( const Mat& img, const vector<int>& params )
     {
         cinfo.image_width = width;
         cinfo.image_height = height;
+
+        int _channels = img.channels();
+        int channels = _channels > 1 ? 3 : 1;
         cinfo.input_components = channels;
         cinfo.in_color_space = channels > 1 ? JCS_RGB : JCS_GRAYSCALE;
+
+        int quality = 95;
+
+        for( size_t i = 0; i < params.size(); i += 2 )
+        {
+            if( params[i] == CV_IMWRITE_JPEG_QUALITY )
+            {
+                quality = params[i+1];
+                quality = MIN(MAX(quality, 0), 100);
+            }
+        }
 
         jpeg_set_defaults( &cinfo );
         jpeg_set_quality( &cinfo, quality,
@@ -613,7 +627,6 @@ bool  JpegEncoder::write( const Mat& img, const vector<int>& params )
     }
 
 _exit_:
-    if(f) fclose(f);
     jpeg_destroy_compress( &cinfo );
 
     return result;

@@ -292,9 +292,9 @@ public:
     typedef typename Distance::ValueType ValueType;
     typedef typename Distance::ResultType DistanceType;
 
-    CV_DescriptorExtractorTest( const string _name, DistanceType _maxDist, const Ptr<DescriptorExtractor>& _dextractor, float _prevTime,
+    CV_DescriptorExtractorTest( const string _name, DistanceType _maxDist, const Ptr<DescriptorExtractor>& _dextractor,
                                 Distance d = Distance() ):
-            name(_name), maxDist(_maxDist), prevTime(_prevTime), dextractor(_dextractor), distance(d) {}
+            name(_name), maxDist(_maxDist), dextractor(_dextractor), distance(d) {}
 protected:
     virtual void createDescriptorExtractor() {}
 
@@ -400,7 +400,7 @@ protected:
             double t = (double)getTickCount();
             dextractor->compute( img, keypoints, calcDescriptors );
             t = getTickCount() - t;
-            ts->printf(cvtest::TS::LOG, "\nAverage time of computing one descriptor = %g ms (previous time = %g ms).\n", t/((double)cvGetTickFrequency()*1000.)/calcDescriptors.rows, prevTime );
+            ts->printf(cvtest::TS::LOG, "\nAverage time of computing one descriptor = %g ms.\n", t/((double)cvGetTickFrequency()*1000.)/calcDescriptors.rows);
 
             if( calcDescriptors.rows != (int)keypoints.size() )
             {
@@ -485,30 +485,12 @@ protected:
 
     string name;
     const DistanceType maxDist;
-    const float prevTime;
     Ptr<DescriptorExtractor> dextractor;
     Distance distance;
 
 private:
     CV_DescriptorExtractorTest& operator=(const CV_DescriptorExtractorTest&) { return *this; }
 };
-
-/*template<typename T, typename Distance>
-class CV_CalonderDescriptorExtractorTest : public CV_DescriptorExtractorTest<Distance>
-{
-public:
-    CV_CalonderDescriptorExtractorTest( const char* testName, float _normDif, float _prevTime ) :
-            CV_DescriptorExtractorTest<Distance>( testName, _normDif, Ptr<DescriptorExtractor>(), _prevTime )
-    {}
-
-protected:
-    virtual void createDescriptorExtractor()
-    {
-        CV_DescriptorExtractorTest<Distance>::dextractor =
-                new CalonderDescriptorExtractor<T>( string(CV_DescriptorExtractorTest<Distance>::ts->get_data_path()) +
-                                                    FEATURES2D_DIR + "/calonder_classifier.rtc");
-    }
-};*/
 
 /****************************************************************************************\
 *                       Algorithmic tests for descriptor matchers                        *
@@ -928,7 +910,7 @@ void CV_DescriptorMatcherTest::radiusMatchTest( const Mat& query, const Mat& tra
 
         dmatcher->radiusMatch( query, matches, radius, masks );
 
-        int curRes = cvtest::TS::OK;
+        //int curRes = cvtest::TS::OK;
         if( (int)matches.size() != queryDescCount )
         {
             ts->printf(cvtest::TS::LOG, "Incorrect matches count while test radiusMatch() function (1).\n");
@@ -968,7 +950,7 @@ void CV_DescriptorMatcherTest::radiusMatchTest( const Mat& query, const Mat& tra
         }
         if( (float)badCount > (float)queryDescCount*badPart )
         {
-            curRes = cvtest::TS::FAIL_INVALID_OUTPUT;
+            //curRes = cvtest::TS::FAIL_INVALID_OUTPUT;
             ts->printf( cvtest::TS::LOG, "%f - too large bad matches part while test radiusMatch() function (2).\n",
                         (float)badCount/(float)queryDescCount );
             ts->set_failed_test_info( cvtest::TS::FAIL_BAD_ACCURACY );
@@ -1014,7 +996,7 @@ TEST( Features2d_Detector_Harris, regression )
     test.safe_run();
 }
 
-TEST( Features2d_Detector_MSER, regression )
+TEST( Features2d_Detector_MSER, DISABLED_regression )
 {
     CV_FeatureDetectorTest test( "detector-mser", FeatureDetector::create("MSER") );
     test.safe_run();
@@ -1044,38 +1026,39 @@ TEST( Features2d_Detector_PyramidFAST, regression )
     test.safe_run();
 }
 
+/*
+ * Descriptors
+ */
+
 TEST( Features2d_DescriptorExtractor_ORB, regression )
 {
     // TODO adjust the parameters below
     CV_DescriptorExtractorTest<Hamming> test( "descriptor-orb",  (CV_DescriptorExtractorTest<Hamming>::DistanceType)12.f,
-                                                 DescriptorExtractor::create("ORB"), 0.010f );
+                                                 DescriptorExtractor::create("ORB") );
+    test.safe_run();
+}
+
+TEST( Features2d_DescriptorExtractor_FREAK, regression )
+{
+    // TODO adjust the parameters below
+    CV_DescriptorExtractorTest<Hamming> test( "descriptor-freak",  (CV_DescriptorExtractorTest<Hamming>::DistanceType)12.f,
+                                                 DescriptorExtractor::create("FREAK") );
     test.safe_run();
 }
 
 TEST( Features2d_DescriptorExtractor_BRIEF, regression )
 {
     CV_DescriptorExtractorTest<Hamming> test( "descriptor-brief",  1,
-                                               DescriptorExtractor::create("BRIEF"), 0.00527548f );
+                                               DescriptorExtractor::create("BRIEF") );
     test.safe_run();
 }
 
-#if CV_SSE2
-TEST( Features2d_DescriptorExtractor_Calonder_uchar, regression )
+TEST( Features2d_DescriptorExtractor_OpponentBRIEF, regression )
 {
-    CV_CalonderDescriptorExtractorTest<uchar, L2<uchar> > test( "descriptor-calonder-uchar",
-                                                                std::numeric_limits<float>::epsilon() + 1,
-                                                                0.0132175f );
+    CV_DescriptorExtractorTest<Hamming> test( "descriptor-opponent-brief",  1,
+                                               DescriptorExtractor::create("OpponentBRIEF") );
     test.safe_run();
 }
-
-TEST( Features2d_DescriptorExtractor_Calonder_float, regression )
-{
-    CV_CalonderDescriptorExtractorTest<float, L2<float> > test( "descriptor-calonder-float",
-                                                                std::numeric_limits<float>::epsilon(),
-                                                                0.0221308f );
-    test.safe_run();
-}
-#endif // CV_SSE2
 
 /*
  * Matchers

@@ -56,7 +56,7 @@ DescriptorExtractor::~DescriptorExtractor()
 {}
 
 void DescriptorExtractor::compute( const Mat& image, vector<KeyPoint>& keypoints, Mat& descriptors ) const
-{    
+{
     if( image.empty() || keypoints.empty() )
     {
         descriptors.release();
@@ -102,7 +102,7 @@ Ptr<DescriptorExtractor> DescriptorExtractor::create(const string& descriptorExt
         string type = descriptorExtractorType.substr(pos);
         return new OpponentColorDescriptorExtractor(DescriptorExtractor::create(type));
     }
-    
+
     return Algorithm::create<DescriptorExtractor>("Feature2D." + descriptorExtractorType);
 }
 
@@ -117,14 +117,10 @@ OpponentColorDescriptorExtractor::OpponentColorDescriptorExtractor( const Ptr<De
     CV_Assert( !descriptorExtractor.empty() );
 }
 
-void convertBGRImageToOpponentColorSpace( const Mat& bgrImage, vector<Mat>& opponentChannels )
+static void convertBGRImageToOpponentColorSpace( const Mat& bgrImage, vector<Mat>& opponentChannels )
 {
     if( bgrImage.type() != CV_8UC3 )
         CV_Error( CV_StsBadArg, "input image must be an BGR image of type CV_8UC3" );
-
-    // Split image into RGB to allow conversion to Opponent Color Space.
-    vector<Mat> bgrChannels(3);
-    split( bgrImage, bgrChannels );
 
     // Prepare opponent color space storage matrices.
     opponentChannels.resize( 3 );
@@ -132,53 +128,18 @@ void convertBGRImageToOpponentColorSpace( const Mat& bgrImage, vector<Mat>& oppo
     opponentChannels[1] = cv::Mat(bgrImage.size(), CV_8UC1); // R+G-2B YELLOW-BLUE
     opponentChannels[2] = cv::Mat(bgrImage.size(), CV_8UC1); // R+G+B
 
-    // Calculate the channels of the opponent color space
-    {
-        // (R - G) / sqrt(2)
-        MatConstIterator_<signed char> rIt = bgrChannels[2].begin<signed char>();
-        MatConstIterator_<signed char> gIt = bgrChannels[1].begin<signed char>();
-        MatIterator_<unsigned char> dstIt = opponentChannels[0].begin<unsigned char>();
-        float factor = 1.f / sqrt(2.f);
-        for( ; dstIt != opponentChannels[0].end<unsigned char>(); ++rIt, ++gIt, ++dstIt )
+    for(int y = 0; y < bgrImage.rows; ++y)
+        for(int x = 0; x < bgrImage.cols; ++x)
         {
-            int value = static_cast<int>( static_cast<float>(static_cast<int>(*gIt)-static_cast<int>(*rIt)) * factor );
-            if( value < 0 ) value = 0;
-            if( value > 255 ) value = 255;
-            (*dstIt) = static_cast<unsigned char>(value);
+            Vec3b v = bgrImage.at<Vec3b>(y, x);
+            uchar& b = v[0];
+            uchar& g = v[1];
+            uchar& r = v[2];
+
+            opponentChannels[0].at<uchar>(y, x) = saturate_cast<uchar>(0.5f    * (255 + g - r));       // (R - G)/sqrt(2), but converted to the destination data type
+            opponentChannels[1].at<uchar>(y, x) = saturate_cast<uchar>(0.25f   * (510 + r + g - 2*b)); // (R + G - 2B)/sqrt(6), but converted to the destination data type
+            opponentChannels[2].at<uchar>(y, x) = saturate_cast<uchar>(1.f/3.f * (r + g + b));         // (R + G + B)/sqrt(3), but converted to the destination data type
         }
-    }
-    {
-        // (R + G - 2B)/sqrt(6)
-        MatConstIterator_<signed char> rIt = bgrChannels[2].begin<signed char>();
-        MatConstIterator_<signed char> gIt = bgrChannels[1].begin<signed char>();
-        MatConstIterator_<signed char> bIt = bgrChannels[0].begin<signed char>();
-        MatIterator_<unsigned char> dstIt = opponentChannels[1].begin<unsigned char>();
-        float factor = 1.f / sqrt(6.f);
-        for( ; dstIt != opponentChannels[1].end<unsigned char>(); ++rIt, ++gIt, ++bIt, ++dstIt )
-        {
-            int value = static_cast<int>( static_cast<float>(static_cast<int>(*rIt) + static_cast<int>(*gIt) - 2*static_cast<int>(*bIt)) *
-                                          factor );
-            if( value < 0 ) value = 0;
-            if( value > 255 ) value = 255;
-            (*dstIt) = static_cast<unsigned char>(value);
-        }
-    }
-    {
-        // (R + G + B)/sqrt(3)
-        MatConstIterator_<signed char> rIt = bgrChannels[2].begin<signed char>();
-        MatConstIterator_<signed char> gIt = bgrChannels[1].begin<signed char>();
-        MatConstIterator_<signed char> bIt = bgrChannels[0].begin<signed char>();
-        MatIterator_<unsigned char> dstIt = opponentChannels[2].begin<unsigned char>();
-        float factor = 1.f / sqrt(3.f);
-        for( ; dstIt != opponentChannels[2].end<unsigned char>(); ++rIt, ++gIt, ++bIt, ++dstIt )
-        {
-            int value = static_cast<int>( static_cast<float>(static_cast<int>(*rIt) + static_cast<int>(*gIt) + static_cast<int>(*bIt)) *
-                                          factor );
-            if( value < 0 ) value = 0;
-            if( value > 255 ) value = 255;
-            (*dstIt) = static_cast<unsigned char>(value);
-        }
-    }
 }
 
 struct KP_LessThan
@@ -223,11 +184,11 @@ void OpponentColorDescriptorExtractor::computeImpl( const Mat& bgrImage, vector<
     vector<KeyPoint> outKeypoints;
     outKeypoints.reserve( keypoints.size() );
 
-    int descriptorSize = descriptorExtractor->descriptorSize();
-    Mat mergedDescriptors( maxKeypointsCount, 3*descriptorSize, descriptorExtractor->descriptorType() );
+    int dSize = descriptorExtractor->descriptorSize();
+    Mat mergedDescriptors( maxKeypointsCount, 3*dSize, descriptorExtractor->descriptorType() );
     int mergedCount = 0;
     // cp - current channel position
-    size_t cp[] = {0, 0, 0}; 
+    size_t cp[] = {0, 0, 0};
     while( cp[0] < channelKeypoints[0].size() &&
            cp[1] < channelKeypoints[1].size() &&
            cp[2] < channelKeypoints[2].size() )
@@ -250,7 +211,7 @@ void OpponentColorDescriptorExtractor::computeImpl( const Mat& bgrImage, vector<
             // merge descriptors
             for( int ci = 0; ci < N; ci++ )
             {
-                Mat dst = mergedDescriptors(Range(mergedCount, mergedCount+1), Range(ci*descriptorSize, (ci+1)*descriptorSize));
+                Mat dst = mergedDescriptors(Range(mergedCount, mergedCount+1), Range(ci*dSize, (ci+1)*dSize));
                 channelDescriptors[ci].row( idxs[ci][cp[ci]] ).copyTo( dst );
                 cp[ci]++;
             }
