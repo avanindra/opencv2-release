@@ -2,12 +2,12 @@ Source: ros-groovy-opencv2
 Section: misc
 Priority: extra
 Maintainer: Vincent Rabaud <vrabaud@willowgarage.com>
-Build-Depends: debhelper (>= 7.0.50~), libv4l-dev,texlive-latex-base,ros-groovy-catkin,libjpeg-dev,libavcodec-dev,libavutil-dev,python-numpy,libtiff4-dev,libswscale-dev,python-dev,python-support,libavformat-dev,libjasper-dev,zlib1g-dev,libpng12-dev,libgtk2.0-dev
+Build-Depends: debhelper (>= 7.0.50~), libv4l-dev,texlive-latex-base,ros-groovy-catkin,libavcodec-dev,libavutil-dev,libjpeg62-dev,python-numpy,libtiff4-dev,libswscale-dev,python-dev,python-support,libavformat-dev,libjasper-dev,zlib1g-dev,libpng12-dev,libgtk2.0-dev
 Homepage: http://opencv.org
 Standards-Version: 3.9.2
 
 Package: ros-groovy-opencv2
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libv4l-dev,libjpeg-dev,libavcodec-dev,libavutil-dev,python-numpy,libtiff4-dev,libswscale-dev,libgtk2.0-dev,python-support,libavformat-dev,libjasper-dev,zlib1g-dev,libpng12-dev,python-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, libv4l-dev,libavcodec-dev,libavutil-dev,libjpeg62-dev,python-numpy,libtiff4-dev,libswscale-dev,libgtk2.0-dev,python-support,libavformat-dev,libjasper-dev,zlib1g-dev,libpng12-dev,python-dev
 Description: OpenCV
 
