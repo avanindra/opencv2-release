@@ -33,4 +33,5 @@ override_dh_auto_configure:
 		-DCMAKE_INSTALL_PREFIX="@(INSTALL_PREFIX)" \
 		-DCMAKE_PREFIX_PATH="@(INSTALL_PREFIX)" \
 		-DCATKIN=YES \
+                -DCATKIN_BUILD_BINARY_PACKAGE="1" \
 		$(CMAKE_FLAGS)
