@@ -1,0 +1,61 @@
+From 340cec1b7d4ef33833a5b1eb6eacf9a4a0119ca0 Mon Sep 17 00:00:00 2001
+From: Vincent Rabaud <vrabaud@willowgarage.com>
+Date: Wed, 3 Oct 2012 08:31:53 -0700
+Subject: [PATCH 1/2] Adding package.xml
+
+---
+ package.xml |   42 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+ create mode 100644 package.xml
+
+diff --git a/package.xml b/package.xml
+new file mode 100644
+index 0000000..c1a0ea6
+--- /dev/null
++++ b/package.xml
+@@ -0,0 +1,42 @@
++<?xml version="1.0"?>
++<package>
++  <name>opencv2</name>
++  <version>2.4.2</version>
++  <description>OpenCV</description>
++  <maintainer email="vrabaud@willowgarage.com">Vincent Rabaud</maintainer>
++  <license>BSD</license>
++
++  <url type="website">http://opencvg.org</url>
++  <url type="bugtracker">http://code.opencv.org/projects/opencv/issues</url>
++  <url type="repository">https://github.com/itseez/opencv</url>
++
++  <author>The OpenCV team</author>
++
++  <build_depend>catkin</build_depend>
++  <build_depend>python-numpy</build_depend>
++  <build_depend>python-support</build_depend>
++  <build_depend>ffmpeg</build_depend>
++  <build_depend>gtk2</build_depend>
++  <build_depend>jasper</build_depend>
++  <build_depend>libjpeg</build_depend>
++  <build_depend>libpng12-dev</build_depend>
++  <build_depend>libtiff4-dev</build_depend>
++  <build_depend>zlib</build_depend>
++  <build_depend>libv4l-dev</build_depend>
++  <build_depend>python</build_depend>
++  <build_depend>texlive-latex-base</build_depend>
++
++  <buildtool_depend>cmake</buildtool_depend>
++
++  <run_depend>python-numpy</run_depend>
++  <run_depend>python-support</run_depend>
++  <run_depend>ffmpeg</run_depend>
++  <run_depend>gtk2</run_depend>
++  <run_depend>jasper</run_depend>
++  <run_depend>libjpeg</run_depend>
++  <run_depend>libpng12-dev</run_depend>
++  <run_depend>libtiff4-dev</run_depend>
++  <run_depend>zlib</run_depend>
++  <run_depend>libv4l-dev</run_depend>
++  <run_depend>python</run_depend>
++</package>
+-- 
+1.7.9.5
+
