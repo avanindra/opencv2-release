@@ -1,4 +1,4 @@
-From 9d975935ec08c915876415606f9c64cdc3d20005 Mon Sep 17 00:00:00 2001
+From 51263f0ab4b1a87a6a21ed674d3beb5aa8cc23f3 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Fri, 26 Oct 2012 11:41:11 -0700
 Subject: [PATCH 2/2] source the setup.sh
