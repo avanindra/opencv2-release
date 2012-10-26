@@ -1,3 +1,5 @@
+find_package(catkin)
+catkin_package()
 # ----------------------------------------------------------------------------
 #  Root CMake file for OpenCV
 #
