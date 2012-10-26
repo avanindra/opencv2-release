@@ -29,6 +29,7 @@ CMAKE_FLAGS = \
 	dh  $@
 
 override_dh_auto_configure:
+	if [ -f "/opt/ros/groovy/setup.sh" ]; then . "/opt/ros/groovy/setup.sh"; fi && \
 	dh_auto_configure -Scmake -- \
 		-DCMAKE_INSTALL_PREFIX="/opt/ros/groovy" \
 		-DCMAKE_PREFIX_PATH="/opt/ros/groovy" \
