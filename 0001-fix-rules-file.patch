@@ -1,7 +1,7 @@
-From 5f9c4863fd0dc40cb94360e30910a5376fe81b3a Mon Sep 17 00:00:00 2001
+From d0d49139a695009aa430e7442752e4e9780fc41f Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Tue, 23 Oct 2012 20:29:42 -0700
-Subject: [PATCH] fix rules file
+Subject: [PATCH 1/2] fix rules file
 
 ---
  debian/rules |   89 ++++++++++++++++++++++++----------------------------------
