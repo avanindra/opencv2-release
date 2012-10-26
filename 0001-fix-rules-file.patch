@@ -1,4 +1,4 @@
-From f1c653ffa034a0146519d0961838ec28d4165fab Mon Sep 17 00:00:00 2001
+From 5febccfe7273f650869e0e3359895c8caef7f9e2 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Tue, 23 Oct 2012 20:29:52 -0700
 Subject: [PATCH] fix rules file
