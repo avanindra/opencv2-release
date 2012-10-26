@@ -1,5 +1,3 @@
-find_package(catkin)
-catkin_package()
 # ----------------------------------------------------------------------------
 #  Root CMake file for OpenCV
 #
@@ -63,6 +61,9 @@ endif()
 project(OpenCV CXX C)
 
 include(cmake/OpenCVUtils.cmake REQUIRED)
+
+find_package(catkin)
+catkin_package()
 
 # ----------------------------------------------------------------------------
 # Break in case of popular CMake configuration mistakes
