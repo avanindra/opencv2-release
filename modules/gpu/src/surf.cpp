@@ -46,7 +46,7 @@ using namespace cv;
 using namespace cv::gpu;
 using namespace std;
 
-#if !defined (HAVE_CUDA) || defined (CUDA_DISABLER)
+#if !defined (HAVE_CUDA)
 
 cv::gpu::SURF_GPU::SURF_GPU() { throw_nogpu(); }
 cv::gpu::SURF_GPU::SURF_GPU(double, int, int, bool, float, bool) { throw_nogpu(); }
@@ -70,15 +70,14 @@ namespace cv { namespace gpu { namespace device
         void loadGlobalConstants(int maxCandidates, int maxFeatures, int img_rows, int img_cols, int nOctaveLayers, float hessianThreshold);
         void loadOctaveConstants(int octave, int layer_rows, int layer_cols);
 
-        void bindImgTex(PtrStepSzb img);
-        size_t bindSumTex(PtrStepSz<unsigned int> sum);
-        size_t bindMaskSumTex(PtrStepSz<unsigned int> maskSum);
+        void bindImgTex(DevMem2Db img);
+        void bindSumTex(DevMem2D_<unsigned int> sum);
+        void bindMaskSumTex(DevMem2D_<unsigned int> maskSum);
 
-        void icvCalcLayerDetAndTrace_gpu(const PtrStepf& det, const PtrStepf& trace, int img_rows, int img_cols,
-            int octave, int nOctaveLayers, const size_t sumOffset);
+        void icvCalcLayerDetAndTrace_gpu(const PtrStepf& det, const PtrStepf& trace, int img_rows, int img_cols, int octave, int nOctaveLayers);
 
         void icvFindMaximaInLayer_gpu(const PtrStepf& det, const PtrStepf& trace, int4* maxPosBuffer, unsigned int* maxCounter,
-            int img_rows, int img_cols, int octave, bool use_mask, int nLayers, const size_t maskOffset);
+            int img_rows, int img_cols, int octave, bool use_mask, int nLayers);
 
         void icvInterpolateKeypoint_gpu(const PtrStepf& det, const int4* maxPosBuffer, unsigned int maxCounter,
             float* featureX, float* featureY, int* featureLaplacian, int* featureOctave, float* featureSize, float* featureHessian,
@@ -86,7 +85,7 @@ namespace cv { namespace gpu { namespace device
 
         void icvCalcOrientation_gpu(const float* featureX, const float* featureY, const float* featureSize, float* featureDir, int nFeatures);
 
-        void compute_descriptors_gpu(const PtrStepSzf& descriptors,
+        void compute_descriptors_gpu(const DevMem2Df& descriptors,
             const float* featureX, const float* featureY, const float* featureSize, const float* featureDir, int nFeatures);
     }
 }}}
@@ -146,15 +145,15 @@ namespace
             loadGlobalConstants(maxCandidates, maxFeatures, img_rows, img_cols, surf_.nOctaveLayers, static_cast<float>(surf_.hessianThreshold));
 
             bindImgTex(img);
-            integralBuffered(img, surf_.sum, surf_.intBuffer);
 
-            sumOffset = bindSumTex(surf_.sum);
+            integralBuffered(img, surf_.sum, surf_.intBuffer);
+            bindSumTex(surf_.sum);
 
             if (use_mask)
             {
                 min(mask, 1.0, surf_.mask1);
                 integralBuffered(surf_.mask1, surf_.maskSum, surf_.intBuffer);
-                maskOffset = bindMaskSumTex(surf_.maskSum);
+                bindMaskSumTex(surf_.maskSum);
             }
         }
 
@@ -174,10 +173,10 @@ namespace
 
                 loadOctaveConstants(octave, layer_rows, layer_cols);
 
-                icvCalcLayerDetAndTrace_gpu(surf_.det, surf_.trace, img_rows, img_cols, octave, surf_.nOctaveLayers, sumOffset);
+                icvCalcLayerDetAndTrace_gpu(surf_.det, surf_.trace, img_rows, img_cols, octave, surf_.nOctaveLayers);
 
                 icvFindMaximaInLayer_gpu(surf_.det, surf_.trace, surf_.maxPosBuffer.ptr<int4>(), counters.ptr<unsigned int>() + 1 + octave,
-                    img_rows, img_cols, octave, use_mask, surf_.nOctaveLayers, maskOffset);
+                    img_rows, img_cols, octave, use_mask, surf_.nOctaveLayers);
 
                 unsigned int maxCounter;
                 cudaSafeCall( cudaMemcpy(&maxCounter, counters.ptr<unsigned int>() + 1 + octave, sizeof(unsigned int), cudaMemcpyDeviceToHost) );
@@ -199,7 +198,7 @@ namespace
             keypoints.cols = featureCounter;
 
             if (surf_.upright)
-                keypoints.row(SURF_GPU::ANGLE_ROW).setTo(Scalar::all(360.0 - 90.0));
+                keypoints.row(SURF_GPU::ANGLE_ROW).setTo(Scalar::all(90.0));
             else
                 findOrientation(keypoints);
         }
@@ -234,9 +233,6 @@ namespace
 
         int maxCandidates;
         int maxFeatures;
-
-        size_t maskOffset;
-        size_t sumOffset;
 
         GpuMat counters;
     };

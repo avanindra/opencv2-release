@@ -39,9 +39,7 @@
 //
 //M*/
 
-#include "test_precomp.hpp"
-
-#ifdef HAVE_CUDA
+#include "precomp.hpp"
 
 namespace {
 
@@ -100,5 +98,3 @@ INSTANTIATE_TEST_CASE_P(GPU_ImgProc, CopyMakeBorder, testing::Combine(
     WHOLE_SUBMAT));
 
 } // namespace
-
-#endif // HAVE_CUDA

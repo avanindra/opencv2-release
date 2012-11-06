@@ -128,9 +128,7 @@ public class FASTFeatureDetectorTest extends OpenCVTestCase {
         detector.write(filename);
 
         String truth = "<?xml version=\"1.0\"?>\n<opencv_storage>\n<name>Feature2D.FAST</name>\n<nonmaxSuppression>1</nonmaxSuppression>\n<threshold>10</threshold>\n</opencv_storage>\n";
-        String data = readFile(filename);
-
-        assertEquals(truth, data);
+        assertEquals(truth, readFile(filename));
     }
 
     public void testWriteYml() {
@@ -139,8 +137,7 @@ public class FASTFeatureDetectorTest extends OpenCVTestCase {
         detector.write(filename);
 
         String truth = "%YAML:1.0\nname: \"Feature2D.FAST\"\nnonmaxSuppression: 1\nthreshold: 10\n";
-        String data = readFile(filename);
-
-        assertEquals(truth, data);
+        assertEquals(truth, readFile(filename));
     }
+
 }

@@ -8,4 +8,3 @@ photo. Computational Photography
     :maxdepth: 2
 
     inpainting 
-    denoising

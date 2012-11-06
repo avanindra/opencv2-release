@@ -67,12 +67,11 @@ StereoVar::~StereoVar()
 
 static Mat diffX(Mat &src)
 {
-    int cols = src.cols - 1;
+    register int x, y, cols = src.cols - 1;
     Mat dst(src.size(), src.type());
-    for(int y = 0; y < src.rows; y++){
+    for(y = 0; y < src.rows; y++){
         const float* pSrc = src.ptr<float>(y);
         float* pDst = dst.ptr<float>(y);
-        int x = 0;
 #if CV_SSE2
         for (x = 0; x <= cols - 8; x += 8) {
             __m128 a0 = _mm_loadu_ps(pSrc + x);

@@ -1,11 +1,8 @@
-'''
-Inpainting sample.
+import numpy as np
+import cv2
+from common import Sketcher
 
-Inpainting repairs damage to images by floodfilling
-the damage with surrounding image areas.
-
-Usage:
-  inpaint.py [<image>]
+help_message = '''USAGE: inpaint.py [<image>]
 
 Keys:
   SPACE - inpaint
@@ -13,15 +10,11 @@ Keys:
   ESC   - exit
 '''
 
-import numpy as np
-import cv2
-from common import Sketcher
-
 if __name__ == '__main__':
     import sys
     try: fn = sys.argv[1]
     except: fn = '../cpp/fruits.jpg'
-    print __doc__
+    print help_message
 
     img = cv2.imread(fn)
     img_mark = img.copy()
@@ -39,5 +32,5 @@ if __name__ == '__main__':
             img_mark[:] = img
             mark[:] = 0
             sketch.show()
-    cv2.destroyAllWindows()
-
+    cv2.destroyAllWindows() 			
+            

@@ -42,7 +42,7 @@
 
 #include "precomp.hpp"
 
-#if !defined HAVE_CUDA || defined(CUDA_DISABLER)
+#if !defined(HAVE_CUDA)
 
 void cv::gpu::meanShiftSegmentation(const GpuMat&, Mat&, int, int, int, TermCriteria) { throw_nogpu(); }
 
@@ -386,4 +386,4 @@ void cv::gpu::meanShiftSegmentation(const GpuMat& src, Mat& dst, int sp, int sr,
     }
 }
 
-#endif // #if !defined (HAVE_CUDA) || defined (CUDA_DISABLER)
+#endif // #if !defined (HAVE_CUDA)

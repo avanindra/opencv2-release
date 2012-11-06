@@ -3,27 +3,30 @@ Loader Callback Interface
 *************************
 
 .. highlight:: java
+.. module:: org.opencv.android
+    :platform: Android
+    :synopsis: Defines OpenCV initialization callback interface.
 .. class:: LoaderCallbackInterface
 
-    Interface for a callback object in case of asynchronous initialization of OpenCV.
+    Interface for callback object in case of asynchronous initialization of OpenCV
 
 void onManagerConnected()
 -------------------------
 
 .. method:: void onManagerConnected(int status)
 
-    Callback method that is called after OpenCV Library initialization.
+    Callback method that is called after OpenCV library initialization
 
-    :param status: status of initialization (see Initialization Status Constants).
+    :param status: Status of initialization. See Initialization status constants
 
 void onPackageInstall()
 -----------------------
 
 .. method:: void onPackageInstall(InstallCallbackInterface Callback)
 
-    Callback method that is called in case when package installation is needed.
+    Callback method that is called in case when package installation is needed
 
-    :param callback: answer object with approve and cancel methods and package description.
+    @param callback Answer object with approve and cancel methods and package description
 
 Initialization status constants
 -------------------------------
@@ -31,6 +34,10 @@ Initialization status constants
 .. data:: SUCCESS
 
     OpenCV initialization finished successfully
+
+.. data:: RESTART_REQUIRED
+
+    OpenCV library installation via Google Play service was initialized. Application restart is required
 
 .. data:: MARKET_ERROR
 

@@ -60,7 +60,7 @@ protected:
 void CV_DrawingTest::run( int )
 {
     Mat testImg, valImg;
-    const string fname = "drawing/image.png";
+    const string fname = "drawing/image.jpg";
     string path = ts->get_data_path(), filename;
     filename = path + fname;
 

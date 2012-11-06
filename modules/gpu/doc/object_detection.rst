@@ -204,7 +204,7 @@ gpu::CascadeClassifier_GPU
 --------------------------
 .. ocv:class:: gpu::CascadeClassifier_GPU
 
-Cascade classifier class used for object detection. Supports HAAR and LBP cascades. ::
+Cascade classifier class used for object detection. ::
 
     class CV_EXPORTS CascadeClassifier_GPU
     {
@@ -219,7 +219,6 @@ Cascade classifier class used for object detection. Supports HAAR and LBP cascad
 
             /* Returns number of detected objects */
             int detectMultiScale( const GpuMat& image, GpuMat& objectsBuf, double scaleFactor=1.2, int minNeighbors=4, Size minSize=Size());
-            int detectMultiScale( const GpuMat& image, GpuMat& objectsBuf, Size maxObjectSize, Size minSize = Size(), double scaleFactor = 1.1, int minNeighbors = 4);
 
             /* Finds only the largest object. Special mode if training is required.*/
             bool findLargestObject;
@@ -234,11 +233,11 @@ Cascade classifier class used for object detection. Supports HAAR and LBP cascad
 
 gpu::CascadeClassifier_GPU::CascadeClassifier_GPU
 -----------------------------------------------------
-Loads the classifier from a file. Cascade type is detected automatically by constructor parameter.
+Loads the classifier from a file.
 
 .. ocv:function:: gpu::CascadeClassifier_GPU::CascadeClassifier_GPU(const string& filename)
 
-    :param filename: Name of the file from which the classifier is loaded. Only the old ``haar`` classifier (trained by the ``haar`` training application) and NVIDIA's ``nvbin`` are supported for HAAR and only new type of OpenCV XML cascade supported for LBP.
+    :param filename: Name of the file from which the classifier is loaded. Only the old ``haar`` classifier (trained by the ``haar`` training application) and NVIDIA's ``nvbin`` are supported.
 
 
 
@@ -256,7 +255,8 @@ Loads the classifier from a file. The previous content is destroyed.
 
 .. ocv:function:: bool gpu::CascadeClassifier_GPU::load(const string& filename)
 
-    :param filename: Name of the file from which the classifier is loaded. Only the old ``haar`` classifier (trained by the ``haar`` training application) and NVIDIA's ``nvbin`` are supported for HAAR and only new type of OpenCV XML cascade supported for LBP.
+    :param filename: Name of the file from which the classifier is loaded. Only the old ``haar`` classifier (trained by the ``haar`` training application) and NVIDIA's ``nvbin`` are supported.
+
 
 
 gpu::CascadeClassifier_GPU::release
@@ -271,17 +271,15 @@ gpu::CascadeClassifier_GPU::detectMultiScale
 ------------------------------------------------
 Detects objects of different sizes in the input image.
 
-.. ocv:function:: int gpu::CascadeClassifier_GPU::detectMultiScale( const GpuMat& image, GpuMat& objectsBuf, double scaleFactor=1.1, int minNeighbors=4, Size minSize=Size() )
+.. ocv:function:: int gpu::CascadeClassifier_GPU::detectMultiScale(const GpuMat& image, GpuMat& objectsBuf, double scaleFactor=1.2, int minNeighbors=4, Size minSize=Size())
 
     :param image: Matrix of type  ``CV_8U``  containing an image where objects should be detected.
 
     :param objectsBuf: Buffer to store detected objects (rectangles). If it is empty, it is allocated with the default size. If not empty, the function searches not more than N objects, where ``N = sizeof(objectsBufer's data)/sizeof(cv::Rect)``.
 
-    :param maxObjectSize: Maximum possible object size. Objects larger than that are ignored. Used for second signature and supported only for LBP cascades.
+    :param scaleFactor: Value to specify how much the image size is reduced at each image scale.
 
-    :param scaleFactor:  Parameter specifying how much the image size is reduced at each image scale.
-
-    :param minNeighbors: Parameter specifying how many neighbors each candidate rectangle should have to retain it.
+    :param minNeighbors: Value to specify how many neighbours each candidate rectangle has to retain.
 
     :param minSize: Minimum possible object size. Objects smaller than that are ignored.
 

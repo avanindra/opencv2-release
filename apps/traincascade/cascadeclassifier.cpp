@@ -208,55 +208,45 @@ bool CvCascadeClassifier::train( const String _cascadeDirName,
         }
 
         CvCascadeBoost* tempStage = new CvCascadeBoost;
-        bool isStageTrained = tempStage->train( (CvFeatureEvaluator*)featureEvaluator,
-                                                curNumSamples, _precalcValBufSize, _precalcIdxBufSize,
-                                                *((CvCascadeBoostParams*)stageParams) );
-        cout << "END>" << endl;
-
-        if(!isStageTrained)
-            break;
-
+        tempStage->train( (CvFeatureEvaluator*)featureEvaluator,
+                           curNumSamples, _precalcValBufSize, _precalcIdxBufSize,
+                          *((CvCascadeBoostParams*)stageParams) );
         stageClassifiers.push_back( tempStage );
 
+        cout << "END>" << endl;
+
         // save params
-        if( i == 0)
+        String filename;
+        if ( i == 0)
         {
-            std::string paramsFilename = dirName + CC_PARAMS_FILENAME;
-            FileStorage fs( paramsFilename, FileStorage::WRITE);
+            filename = dirName + CC_PARAMS_FILENAME;
+            FileStorage fs( filename, FileStorage::WRITE);
             if ( !fs.isOpened() )
             {
-                cout << "Parameters can not be written, because file " << paramsFilename
+                cout << "Parameters can not be written, because file " << filename
                         << " can not be opened." << endl;
                 return false;
             }
-            fs << FileStorage::getDefaultObjectName(paramsFilename) << "{";
+            fs << FileStorage::getDefaultObjectName(filename) << "{";
             writeParams( fs );
             fs << "}";
         }
         // save current stage
         char buf[10];
         sprintf(buf, "%s%d", "stage", i );
-        string stageFilename = dirName + buf + ".xml";
-        FileStorage fs( stageFilename, FileStorage::WRITE );
+        filename = dirName + buf + ".xml";
+        FileStorage fs( filename, FileStorage::WRITE );
         if ( !fs.isOpened() )
         {
-            cout << "Current stage can not be written, because file " << stageFilename
+            cout << "Current stage can not be written, because file " << filename
                     << " can not be opened." << endl;
             return false;
         }
-        fs << FileStorage::getDefaultObjectName(stageFilename) << "{";
+        fs << FileStorage::getDefaultObjectName(filename) << "{";
         tempStage->write( fs, Mat() );
         fs << "}";
     }
-
-    if(stageClassifiers.size() == 0)
-    {
-        cout << "Cascade classifier can't be trained. Check the used training parameters." << endl;
-        return false;
-    }
-
     save( dirName + CC_CASCADE_FILENAME, baseFormatSave );
-
     return true;
 }
 

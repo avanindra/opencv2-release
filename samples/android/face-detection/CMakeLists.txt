@@ -2,6 +2,7 @@ set(sample example-face-detection)
 
 if(BUILD_FAT_JAVA_LIB)
   set(native_deps opencv_java)
+  ocv_include_modules(opencv_contrib)
 else()
   set(native_deps opencv_contrib)
 endif()

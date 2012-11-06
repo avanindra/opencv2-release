@@ -1,9 +1,3 @@
-'''
-Simple "Square Detector" program.
-
-Loads several images sequentially and tries to find squares in each image.
-'''
-
 import numpy as np
 import cv2
 
@@ -43,4 +37,4 @@ if __name__ == '__main__':
         ch = 0xFF & cv2.waitKey()
         if ch == 27:
             break
-    cv2.destroyAllWindows()
+    cv2.destroyAllWindows() 			

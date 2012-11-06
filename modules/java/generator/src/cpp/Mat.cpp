@@ -2,8 +2,6 @@
 
 #include "converters.h"
 
-#ifdef ANDROID
-
 #include <android/log.h>
 #define LOG_TAG "org.opencv.core.Mat"
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__))
@@ -12,15 +10,6 @@
 #else //!DEBUG
 #define LOGD(...)
 #endif //DEBUG
-
-#else
-#define LOGE(...)
-#define LOGD(...)
-#endif
-
-#ifdef _MSC_VER
-#  pragma warning(disable:4800)
-#endif
 
 #include "opencv2/core/core.hpp"
 
@@ -2174,7 +2163,7 @@ template<typename T> static int mat_put(cv::Mat* m, int row, int col, int count,
     if(! buff) return 0;
 
     count *= sizeof(T);
-    int rest = ((m->rows - row) * m->cols - col) * (int)m->elemSize();
+    int rest = ((m->rows - row) * m->cols - col) * m->elemSize();
     if(count>rest) count = rest;
     int res = count;
 
@@ -2183,14 +2172,14 @@ template<typename T> static int mat_put(cv::Mat* m, int row, int col, int count,
         memcpy(m->ptr(row, col), buff, count);
     } else {
         // row by row
-        int num = (m->cols - col) * (int)m->elemSize(); // 1st partial row
+        int num = (m->cols - col) * m->elemSize(); // 1st partial row
         if(count<num) num = count;
         uchar* data = m->ptr(row++, col);
         while(count>0){
             memcpy(data, buff, num);
             count -= num;
             buff += num;
-            num = m->cols * (int)m->elemSize();
+            num = m->cols * m->elemSize();
             if(count<num) num = count;
             data = m->ptr(row++, 0);
         }
@@ -2334,7 +2323,7 @@ template<typename T> int mat_get(cv::Mat* m, int row, int col, int count, char* 
     if(! buff) return 0;
 
     int bytesToCopy = count * sizeof(T);
-    int bytesRestInMat = ((m->rows - row) * m->cols - col) * (int)m->elemSize();
+    int bytesRestInMat = ((m->rows - row) * m->cols - col) * m->elemSize();
     if(bytesToCopy > bytesRestInMat) bytesToCopy = bytesRestInMat;
     int res = bytesToCopy;
 
@@ -2343,7 +2332,7 @@ template<typename T> int mat_get(cv::Mat* m, int row, int col, int count, char* 
         memcpy(buff, m->ptr(row, col), bytesToCopy);
     } else {
         // row by row
-        int bytesInRow = (m->cols - col) * (int)m->elemSize(); // 1st partial row
+        int bytesInRow = (m->cols - col) * m->elemSize(); // 1st partial row
         while(bytesToCopy > 0)
         {
             int len = std::min(bytesToCopy, bytesInRow);
@@ -2352,7 +2341,7 @@ template<typename T> int mat_get(cv::Mat* m, int row, int col, int count, char* 
             buff += len;
             row++;
             col = 0;
-            bytesInRow = m->cols * (int)m->elemSize();
+            bytesInRow = m->cols * m->elemSize();
         }
     }
     return res;
@@ -2529,7 +2518,7 @@ JNIEXPORT jdoubleArray JNICALL Java_org_opencv_core_Mat_nGet
 
         jdoubleArray res = env->NewDoubleArray(me->channels());
         if(res){
-            jdouble buff[CV_CN_MAX];//me->channels()
+            jdouble buff[me->channels()];
             int i;
             switch(me->depth()){
                 case CV_8U:  for(i=0; i<me->channels(); i++) buff[i] = *((unsigned char*) me->ptr(row, col) + i); break;

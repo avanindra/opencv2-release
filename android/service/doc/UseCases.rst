@@ -1,29 +1,29 @@
 *******************************************
-Manager Workflow
+Engine use Cases
 *******************************************
 
 First application start
 -----------------------
 
-There is no OpenCV Manager or OpenCV libraries:
+There is no OpenCV Manager and OpenCV libraries.
 
-.. image:: img/NoService.png
+.. image:: img/NoService.dia.png
 
-Aditional library package installation
---------------------------------------
+Second application start
+------------------------
 
-There is an OpenCV Manager service, but there is no apropriate OpenCV library.
-If OpenCV library installation has been approved\:
+There is OpenCV Manager service, but there is no OpenCV library.
+If OpenCV library installation approved\:
 
-.. image:: img/LibInstallAproved.png
+.. image:: img/LibInstallAproved.dia.png
 
-If OpenCV library installation has been canceled\:
+If OpenCV library installation canceled\:
 
-.. image:: img/LibInstallCanceled.png
+.. image:: img/LibInstallCanceled.dia.png
 
 Regular application start
 -------------------------
 
-OpenCV Manager and OpenCV library has been already installed.
+OpenCV Manager and OpenCV library has bee already installed.
 
-.. image:: img/LibInstalled.png
+.. image:: img/LibInstalled.dia.png

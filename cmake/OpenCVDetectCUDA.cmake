@@ -1,10 +1,5 @@
 if(${CMAKE_VERSION} VERSION_LESS "2.8.3")
-  message(STATUS "WITH_CUDA flag requires CMake 2.8.3 or newer. CUDA support is disabled.")
-  return()
-endif()
-
-if (NOT MSVC AND NOT CMAKE_COMPILER_IS_GNUCXX OR MINGW)
-  message(STATUS "CUDA compilation was disabled (due to unsuppoted host compiler).")
+  message(STATUS WITH_CUDA flag requires CMake 2.8.3. CUDA support is disabled.)
   return()
 endif()
 
@@ -79,28 +74,10 @@ if(CUDA_FOUND)
 
   message(STATUS "CUDA NVCC target flags: ${CUDA_NVCC_FLAGS}")
 
-  OCV_OPTION(CUDA_FAST_MATH  "Enable --use_fast_math for CUDA compiler " OFF)
-
-  if(CUDA_FAST_MATH)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --use_fast_math)
-  endif()
-
-  mark_as_advanced(CUDA_BUILD_CUBIN CUDA_BUILD_EMULATION CUDA_VERBOSE_BUILD CUDA_SDK_ROOT_DIR)
-
   unset(CUDA_npp_LIBRARY CACHE)
   find_cuda_helper_libs(npp)
 
-  macro(ocv_cuda_compile VAR)
-    foreach(var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG)
-      set(${var}_backup_in_cuda_compile_ "${${var}}")
-
-      # we reomove /EHa as it leasd warnings under windows
-      string(REPLACE "/EHa" "" ${var} "${${var}}")
-
-      # we remove -ggdb3 flag as it leads to preprocessor errors when compiling CUDA files (CUDA 4.1)
-      string(REPLACE "-ggdb3" "" ${var} "${${var}}")
-    endforeach()
-
+  macro(OCV_CUDA_COMPILE VAR)
     if (BUILD_SHARED_LIBS)
       set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -Xcompiler -DCVAPI_EXPORTS)
     endif()
@@ -112,17 +89,11 @@ if(CUDA_FOUND)
       set (CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -Xcompiler -fno-finite-math-only)
     endif()
 
-    # disabled because of multiple warnings during building nvcc auto generated files
-    if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_GCC_REGEX_VERSION VERSION_GREATER "4.6.0")
-      ocv_warnings_disable(CMAKE_CXX_FLAGS -Wunused-but-set-variable)
-    endif()
-
+    # we remove -ggdb3 flag as it leads to preprocessor errors when compiling CUDA files (CUDA 4.1)
+    set(CMAKE_CXX_FLAGS_DEBUG_ ${CMAKE_CXX_FLAGS_DEBUG})
+    string(REPLACE "-ggdb3" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
     CUDA_COMPILE(${VAR} ${ARGN})
-
-    foreach(var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG)
-      set(${var} "${${var}_backup_in_cuda_compile_}")
-      unset(${var}_backup_in_cuda_compile_)
-    endforeach()
+    set(CMAKE_CXX_DEBUG_FLAGS ${CMAKE_CXX_FLAGS_DEBUG_})
   endmacro()
 else()
   unset(CUDA_ARCH_BIN CACHE)

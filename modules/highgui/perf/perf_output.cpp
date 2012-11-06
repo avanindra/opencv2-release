@@ -6,8 +6,6 @@ using namespace perf;
 using std::tr1::make_tuple;
 using std::tr1::get;
 
-#ifndef ANDROID
-
 typedef std::tr1::tuple<String, bool> VideoWriter_Writing_t;
 typedef perf::TestBaseWithParam<VideoWriter_Writing_t> VideoWriter_Writing;
 
@@ -27,8 +25,5 @@ PERF_TEST_P(VideoWriter_Writing, WriteFrame,
 
   TEST_CYCLE() { Mat image = imread(filename, 1); writer << image; }
 
-  bool dummy = writer.isOpened();
-  SANITY_CHECK(dummy);
+  SANITY_CHECK(writer.isOpened());
 }
-
-#endif //ANDROID

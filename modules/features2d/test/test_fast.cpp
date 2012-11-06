@@ -58,10 +58,9 @@ CV_FastTest::~CV_FastTest() {}
 
 void CV_FastTest::run( int )
 {
-  for(int type=0; type <= 2; ++type) {
-    Mat image1 = imread(string(ts->get_data_path()) + "inpaint/orig.png");
-    Mat image2 = imread(string(ts->get_data_path()) + "cameracalibration/chess9.png");
-    string xml = string(ts->get_data_path()) + format("fast/result%d.xml", type);
+    Mat image1 = imread(string(ts->get_data_path()) + "inpaint/orig.jpg");
+    Mat image2 = imread(string(ts->get_data_path()) + "cameracalibration/chess9.jpg");
+    string xml = string(ts->get_data_path()) + "fast/result.xml";
 
     if (image1.empty() || image2.empty())
     {
@@ -75,8 +74,8 @@ void CV_FastTest::run( int )
 
     vector<KeyPoint> keypoints1;
     vector<KeyPoint> keypoints2;
-    FASTX(gray1, keypoints1, 30, true, type);
-    FASTX(gray2, keypoints2, (type > 0 ? 30 : 20), true, type);
+    FAST(gray1, keypoints1, 30);
+    FAST(gray2, keypoints2, 30);
 
     for(size_t i = 0; i < keypoints1.size(); ++i)
     {
@@ -97,40 +96,30 @@ void CV_FastTest::run( int )
     if (!fs.isOpened())
     {
         fs.open(xml, FileStorage::WRITE);
-        if (!fs.isOpened())
-        {
-            ts->set_failed_test_info(cvtest::TS::FAIL_INVALID_TEST_DATA);
-            return;
-        }
         fs << "exp_kps1" << kps1;
         fs << "exp_kps2" << kps2;
         fs.release();
-        fs.open(xml, FileStorage::READ);
-        if (!fs.isOpened())
-        {
-            ts->set_failed_test_info(cvtest::TS::FAIL_INVALID_TEST_DATA);
-            return;
-        }
     }
+
+    if (!fs.isOpened())
+        fs.open(xml, FileStorage::READ);
 
     Mat exp_kps1, exp_kps2;
     read( fs["exp_kps1"], exp_kps1, Mat() );
     read( fs["exp_kps2"], exp_kps2, Mat() );
     fs.release();
 
-    if ( exp_kps1.size != kps1.size || 0 != norm(exp_kps1, kps1, NORM_L2) ||
-         exp_kps2.size != kps2.size || 0 != norm(exp_kps2, kps2, NORM_L2))
+    if ( 0 != norm(exp_kps1, kps1, NORM_L2) || 0 != norm(exp_kps2, kps2, NORM_L2))
     {
         ts->set_failed_test_info(cvtest::TS::FAIL_MISMATCH);
         return;
     }
 
-    /*cv::namedWindow("Img1"); cv::imshow("Img1", image1);
+ /*   cv::namedWindow("Img1"); cv::imshow("Img1", image1);
     cv::namedWindow("Img2"); cv::imshow("Img2", image2);
     cv::waitKey(0);*/
-  }
 
-  ts->set_failed_test_info(cvtest::TS::OK);
+    ts->set_failed_test_info(cvtest::TS::OK);
 }
 
 TEST(Features2d_FAST, regression) { CV_FastTest test; test.safe_run(); }

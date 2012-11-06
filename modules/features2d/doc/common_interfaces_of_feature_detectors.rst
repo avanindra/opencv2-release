@@ -24,7 +24,7 @@ KeyPoint
 
   .. ocv:member:: float angle
 
-     computed orientation of the keypoint (-1 if not applicable). Its possible values are in a range [0,360) degrees. It is measured relative to image coordinate system (y-axis is directed downward), ie in clockwise.
+     computed orientation of the keypoint (-1 if not applicable)
 
   .. ocv:member:: float response
 
@@ -148,7 +148,7 @@ Wrapping class for feature detection using the
     class FastFeatureDetector : public FeatureDetector
     {
     public:
-        FastFeatureDetector( int threshold=1, bool nonmaxSuppression=true, type=FastFeatureDetector::TYPE_9_16 );
+        FastFeatureDetector( int threshold=1, bool nonmaxSuppression=true );
         virtual void read( const FileNode& fn );
         virtual void write( FileStorage& fs ) const;
     protected:

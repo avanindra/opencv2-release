@@ -39,16 +39,13 @@
 //
 //M*/
 
-#include "test_precomp.hpp"
-
-#ifdef HAVE_CUDA
+#include "precomp.hpp"
 
 using namespace std;
 using namespace cv;
 using namespace cv::gpu;
 using namespace cvtest;
 using namespace testing;
-using namespace testing::internal;
 
 //////////////////////////////////////////////////////////////////////
 // random generators
@@ -111,12 +108,12 @@ GpuMat loadMat(const Mat& m, bool useRoi)
 //////////////////////////////////////////////////////////////////////
 // Image load
 
-Mat readImage(const std::string& fileName, int flags)
+Mat readImage(const string& fileName, int flags)
 {
-    return imread(TS::ptr()->get_data_path() + fileName, flags);
+    return imread(string(cvtest::TS::ptr()->get_data_path()) + fileName, flags);
 }
 
-Mat readImageType(const std::string& fname, int type)
+Mat readImageType(const string& fname, int type)
 {
     Mat src = readImage(fname, CV_MAT_CN(type) == 1 ? IMREAD_GRAYSCALE : IMREAD_COLOR);
     if (CV_MAT_CN(type) == 4)
@@ -130,14 +127,6 @@ Mat readImageType(const std::string& fname, int type)
 }
 
 //////////////////////////////////////////////////////////////////////
-// Image dumping
-
-void dumpImage(const std::string& fileName, const cv::Mat& image)
-{
-    cv::imwrite(TS::ptr()->get_data_path() + fileName, image);
-}
-
-//////////////////////////////////////////////////////////////////////
 // Gpu devices
 
 bool supportFeature(const DeviceInfo& info, FeatureSet feature)
@@ -145,51 +134,50 @@ bool supportFeature(const DeviceInfo& info, FeatureSet feature)
     return TargetArchs::builtWith(feature) && info.supports(feature);
 }
 
-DeviceManager& DeviceManager::instance()
+const vector<DeviceInfo>& devices()
 {
-    static DeviceManager obj;
-    return obj;
-}
+    static vector<DeviceInfo> devs;
+    static bool first = true;
 
-void DeviceManager::load(int i)
-{
-    devices_.clear();
-    devices_.reserve(1);
-
-    ostringstream msg;
-
-    if (i < 0 || i >= getCudaEnabledDeviceCount())
+    if (first)
     {
-        msg << "Incorrect device number - " << i;
-        throw runtime_error(msg.str());
-    }
+        int deviceCount = getCudaEnabledDeviceCount();
 
-    DeviceInfo info(i);
+        devs.reserve(deviceCount);
 
-    if (!info.isCompatible())
-    {
-        msg << "Device " << i << " [" << info.name() << "] is NOT compatible with current GPU module build";
-        throw runtime_error(msg.str());
-    }
-
-    devices_.push_back(info);
-}
-
-void DeviceManager::loadAll()
-{
-    int deviceCount = getCudaEnabledDeviceCount();
-
-    devices_.clear();
-    devices_.reserve(deviceCount);
-
-    for (int i = 0; i < deviceCount; ++i)
-    {
-        DeviceInfo info(i);
-        if (info.isCompatible())
+        for (int i = 0; i < deviceCount; ++i)
         {
-            devices_.push_back(info);
+            DeviceInfo info(i);
+            if (info.isCompatible())
+                devs.push_back(info);
+        }
+
+        first = false;
+    }
+
+    return devs;
+}
+
+vector<DeviceInfo> devices(FeatureSet feature)
+{
+    const vector<DeviceInfo>& d = devices();
+
+    vector<DeviceInfo> devs_filtered;
+
+    if (TargetArchs::builtWith(feature))
+    {
+        devs_filtered.reserve(d.size());
+
+        for (size_t i = 0, size = d.size(); i < size; ++i)
+        {
+            const DeviceInfo& info = d[i];
+
+            if (info.supports(feature))
+                devs_filtered.push_back(info);
         }
     }
+
+    return devs_filtered;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -262,7 +250,7 @@ void minMaxLocGold(const Mat& src, double* minVal_, double* maxVal_, Point* minL
 
 namespace
 {
-    template <typename T, typename OutT> std::string printMatValImpl(const Mat& m, Point p)
+    template <typename T, typename OutT> string printMatValImpl(const Mat& m, Point p)
     {
         const int cn = m.channels();
 
@@ -281,9 +269,9 @@ namespace
         return ostr.str();
     }
 
-    std::string printMatVal(const Mat& m, Point p)
+    string printMatVal(const Mat& m, Point p)
     {
-        typedef std::string (*func_t)(const Mat& m, Point p);
+        typedef string (*func_t)(const Mat& m, Point p);
 
         static const func_t funcs[] =
         {
@@ -420,5 +408,3 @@ void showDiff(InputArray gold_, InputArray actual_, double eps)
 
     waitKey();
 }
-
-#endif // HAVE_CUDA

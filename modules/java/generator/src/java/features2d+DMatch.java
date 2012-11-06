@@ -3,21 +3,21 @@ package org.opencv.features2d;
 //C++: class DMatch
 
 /**
- * Structure for matching: query descriptor index, train descriptor index, train
+ * Struct for matching: query descriptor index, train descriptor index, train
  * image index and distance between descriptors.
  */
 public class DMatch {
 
     /**
-     * Query descriptor index.
+     * query descriptor index
      */
     public int queryIdx;
     /**
-     * Train descriptor index.
+     * train descriptor index
      */
     public int trainIdx;
     /**
-     * Train image index.
+     * train image index
      */
     public int imgIdx;
 
@@ -46,7 +46,7 @@ public class DMatch {
     }
 
     /**
-     * Less is better.
+     * less is better
      */
     public boolean lessThan(DMatch it) {
         return distance < it.distance;

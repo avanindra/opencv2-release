@@ -498,9 +498,7 @@ void SIFT::findScaleSpaceExtrema( const vector<Mat>& gauss_pyr, const vector<Mat
                             {
                                 float bin = j + 0.5f * (hist[l]-hist[r2]) / (hist[l] - 2*hist[j] + hist[r2]);
                                 bin = bin < 0 ? n + bin : bin >= n ? bin - n : bin;
-                                kpt.angle = 360.f - (float)((360.f/n) * bin);
-                                if(std::abs(kpt.angle - 360.f) < FLT_EPSILON)
-                                    kpt.angle = 0.f;
+                                kpt.angle = (float)((360.f/n) * bin);
                                 keypoints.push_back(kpt);
                             }
                         }
@@ -652,10 +650,7 @@ static void calcDescriptors(const vector<Mat>& gpyr, const vector<KeyPoint>& key
         Point2f ptf(kpt.pt.x*scale, kpt.pt.y*scale);
         const Mat& img = gpyr[octv*(nOctaveLayers + 3) + layer];
 
-        float angle = 360.f - kpt.angle;
-        if(std::abs(angle - 360.f) < FLT_EPSILON)
-           angle = 0.f;
-        calcSIFTDescriptor(img, ptf, angle, size*0.5f, d, n, descriptors.ptr<float>((int)i));
+        calcSIFTDescriptor(img, ptf, kpt.angle, size*0.5f, d, n, descriptors.ptr<float>((int)i));
     }
 }
 

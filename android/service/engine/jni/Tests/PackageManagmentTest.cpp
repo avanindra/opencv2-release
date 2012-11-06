@@ -24,53 +24,47 @@ TEST(PackageManager, InstalledVersions)
 TEST(PackageManager, CheckVersionInstalled)
 {
     PackageManagerStub pm;
-    PackageInfo info("230", PLATFORM_UNKNOWN, ARCH_ARMv7);
+    PackageInfo info("230", PLATFORM_TEGRA3, 0);
     pm.InstalledPackages.push_back(info);
-    EXPECT_TRUE(pm.CheckVersionInstalled("230", PLATFORM_UNKNOWN, ARCH_ARMv7));
+    EXPECT_TRUE(pm.CheckVersionInstalled("230", PLATFORM_TEGRA3, 0));
 }
 
 TEST(PackageManager, InstallVersion)
 {
     PackageManagerStub pm;
-    PackageInfo info("230", PLATFORM_UNKNOWN, ARCH_ARMv5);
+    PackageInfo info("230", PLATFORM_TEGRA3, 0);
     pm.InstalledPackages.push_back(info);
-    EXPECT_TRUE(pm.InstallVersion("240", PLATFORM_UNKNOWN, ARCH_ARMv5));
+    EXPECT_TRUE(pm.InstallVersion("240", PLATFORM_TEGRA3, 0));
     EXPECT_EQ(2, pm.InstalledPackages.size());
-    EXPECT_TRUE(pm.CheckVersionInstalled("240", PLATFORM_UNKNOWN, ARCH_ARMv5));
-}
-
-TEST(PackageManager, GetPackagePathForArmv5)
-{
-    PackageManagerStub pm;
-    EXPECT_TRUE(pm.InstallVersion("243", PLATFORM_UNKNOWN, ARCH_ARMv5));
-    string path = pm.GetPackagePathByVersion("243", PLATFORM_UNKNOWN, ARCH_ARMv5);
-    EXPECT_STREQ("/data/data/org.opencv.lib_v24_armv5/lib", path.c_str());
+    EXPECT_TRUE(pm.CheckVersionInstalled("240", PLATFORM_TEGRA3, 0));
 }
 
 TEST(PackageManager, GetPackagePathForArmv7)
 {
     PackageManagerStub pm;
-    EXPECT_TRUE(pm.InstallVersion("230", PLATFORM_UNKNOWN, ARCH_ARMv7));
+    PackageInfo info("230", PLATFORM_UNKNOWN, ARCH_ARMv7);
+    pm.InstalledPackages.push_back(info);
     string path = pm.GetPackagePathByVersion("230", PLATFORM_UNKNOWN, ARCH_ARMv7);
-    EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7a/lib", path.c_str());
+    EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7/lib", path.c_str());
 }
 
 TEST(PackageManager, GetPackagePathForArmv7Neon)
 {
     PackageManagerStub pm;
-    EXPECT_TRUE(pm.InstallVersion("230", PLATFORM_UNKNOWN, ARCH_ARMv7 | FEATURES_HAS_NEON));
+    PackageInfo info("230", PLATFORM_UNKNOWN, ARCH_ARMv7 | FEATURES_HAS_NEON);
+    pm.InstalledPackages.push_back(info);
+    
     string path = pm.GetPackagePathByVersion("230", PLATFORM_UNKNOWN, ARCH_ARMv7 | FEATURES_HAS_NEON);
-#ifdef __SUPPORT_ARMEABI_V7A_FEATURES
-    EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7a_neon/lib", path.c_str());
-#else
-    EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7a/lib", path.c_str());
-#endif
+    EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7/lib", path.c_str());
+    // TODO: Replace if seporate package will be exists
+    //EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7_neon/lib", path.c_str());
 }
 
 TEST(PackageManager, GetPackagePathForX86)
 {
     PackageManagerStub pm;
-    EXPECT_TRUE(pm.InstallVersion("230", PLATFORM_UNKNOWN, ARCH_X86));
+    PackageInfo info("230", PLATFORM_UNKNOWN, ARCH_X86);
+    pm.InstalledPackages.push_back(info);
     string path = pm.GetPackagePathByVersion("230", PLATFORM_UNKNOWN, ARCH_X86);
     EXPECT_STREQ("/data/data/org.opencv.lib_v23_x86/lib", path.c_str());
 }
@@ -78,40 +72,13 @@ TEST(PackageManager, GetPackagePathForX86)
 TEST(PackageManager, GetPackagePathForX86SSE2)
 {
     PackageManagerStub pm;
-    EXPECT_TRUE(pm.InstallVersion("230", PLATFORM_UNKNOWN, ARCH_X86 | FEATURES_HAS_SSE2));
+    PackageInfo info("230", PLATFORM_UNKNOWN, ARCH_X86 | FEATURES_HAS_SSE2);
+    pm.InstalledPackages.push_back(info);
     string path = pm.GetPackagePathByVersion("230", PLATFORM_UNKNOWN, ARCH_X86 | FEATURES_HAS_SSE2);
-#ifdef __SUPPORT_INTEL_FEATURES
-    EXPECT_STREQ("/data/data/org.opencv.lib_v23_x86_sse2/lib", path.c_str());
-#else
     EXPECT_STREQ("/data/data/org.opencv.lib_v23_x86/lib", path.c_str());
-#endif
+    // TODO: Replace if seporate package will be exists
+    //EXPECT_STREQ("/data/data/org.opencv.lib_v23_x86_sse2/lib", path.c_str());
 }
-
-TEST(PackageManager, GetPackagePathForTegra3)
-{
-    PackageManagerStub pm;
-    EXPECT_TRUE(pm.InstallVersion("230", PLATFORM_TEGRA3, ARCH_ARMv7 | FEATURES_HAS_NEON));
-    string path = pm.GetPackagePathByVersion("230", PLATFORM_TEGRA3, ARCH_ARMv7 | FEATURES_HAS_NEON);
-#ifdef __SUPPORT_TEGRA3
-    EXPECT_STREQ("/data/data/org.opencv.lib_v23_tegra3/lib", path.c_str());
-#else
-#ifdef __SUPPORT_ARMEABI_V7A_FEATURES
-    EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7a_neon/lib", path.c_str());
-#else
-    EXPECT_STREQ("/data/data/org.opencv.lib_v23_armv7a/lib", path.c_str());
-#endif
-#endif
-}
-
-#ifdef __SUPPORT_MIPS
-TEST(PackageManager, GetPackagePathForMips)
-{
-    PackageManagerStub pm;
-    EXPECT_TRUE(pm.InstallVersion("243", PLATFORM_UNKNOWN, ARCH_MIPS));
-    string path = pm.GetPackagePathByVersion("243", PLATFORM_UNKNOWN, ARCH_MIPS);
-    EXPECT_STREQ("/data/data/org.opencv.lib_v24_mips/lib", path.c_str());
-}
-#endif
 
 // TODO: Enable tests if seporate package will be exists
 // TEST(PackageManager, GetPackagePathForTegra2)
@@ -122,5 +89,12 @@ TEST(PackageManager, GetPackagePathForMips)
 //     string path = pm.GetPackagePathByVersion("240", PLATFORM_TEGRA2, 0);
 //     EXPECT_STREQ("/data/data/org.opencv.lib_v24_tegra2/lib", path.c_str());
 // }
-
-
+// 
+// TEST(PackageManager, GetPackagePathForTegra3)
+// {
+//     PackageManagerStub pm;
+//     PackageInfo info("230", PLATFORM_TEGRA3, 0);
+//     pm.InstalledPackages.push_back(info);
+//     string path = pm.GetPackagePathByVersion("230", PLATFORM_TEGRA3, 0);
+//     EXPECT_STREQ("/data/data/org.opencv.lib_v23_tegra3/lib", path.c_str());
+// }

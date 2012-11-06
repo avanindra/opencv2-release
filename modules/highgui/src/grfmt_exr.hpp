@@ -45,10 +45,6 @@
 
 #ifdef HAVE_OPENEXR
 
-#if defined __GNUC__ && defined __APPLE__
-#  pragma GCC diagnostic ignored "-Wshadow"
-#endif
-
 #include <ImfChromaticities.h>
 #include <ImfInputFile.h>
 #include <ImfChannelList.h>

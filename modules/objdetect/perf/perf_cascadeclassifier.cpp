@@ -11,14 +11,17 @@ typedef std::tr1::tuple<std::string, int> ImageName_MinSize_t;
 typedef perf::TestBaseWithParam<ImageName_MinSize_t> ImageName_MinSize;
 
 PERF_TEST_P(ImageName_MinSize, CascadeClassifierLBPFrontalFace,
-            testing::Combine(testing::Values( std::string("cv/shared/lena.png"),
-                                              std::string("cv/shared/1_itseez-0000289.png"),
-                                              std::string("cv/shared/1_itseez-0000492.png"),
-                                              std::string("cv/shared/1_itseez-0000573.png"),
-                                              std::string("cv/shared/1_itseez-0000892.png"),
-                                              std::string("cv/shared/1_itseez-0001238.png"),
-                                              std::string("cv/shared/1_itseez-0001438.png"),
-                                              std::string("cv/shared/1_itseez-0002524.png")),
+            testing::Combine(testing::Values( std::string("cv/shared/lena.jpg"),
+                                              std::string("cv/shared/1_itseez-0000247.jpg"),
+                                              std::string("cv/shared/1_itseez-0000289.jpg"),
+                                              std::string("cv/shared/1_itseez-0000492.jpg"),
+                                              std::string("cv/shared/1_itseez-0000573.jpg"),
+                                              std::string("cv/shared/1_itseez-0000803.jpg"),
+                                              std::string("cv/shared/1_itseez-0000892.jpg"),
+                                              std::string("cv/shared/1_itseez-0000984.jpg"),
+                                              std::string("cv/shared/1_itseez-0001238.jpg"),
+                                              std::string("cv/shared/1_itseez-0001438.jpg"),
+                                              std::string("cv/shared/1_itseez-0002524.jpg")),
                              testing::Values(24, 30, 40, 50, 60, 70, 80, 90)
                              )
             )
@@ -31,24 +34,21 @@ PERF_TEST_P(ImageName_MinSize, CascadeClassifierLBPFrontalFace,
     if (cc.empty())
         FAIL() << "Can't load cascade file";
 
-    Mat img = imread(getDataPath(filename), 0);
+    Mat img=imread(getDataPath(filename), 0);
     if (img.empty())
         FAIL() << "Can't load source image";
 
-    vector<Rect> faces;
+    vector<Rect> res;
 
     equalizeHist(img, img);
     declare.in(img);
 
     while(next())
     {
-        faces.clear();
+        res.clear();
 
         startTimer();
-        cc.detectMultiScale(img, faces, 1.1, 3, 0, minSize);
+        cc.detectMultiScale(img, res, 1.1, 3, 0, minSize);
         stopTimer();
     }
-
-    std::sort(faces.begin(), faces.end(), comparators::RectLess());
-    SANITY_CHECK(faces, 3.001 * faces.size());
 }

@@ -18,10 +18,6 @@
 #  include "opencv2/ml/ml.hpp"
 #endif
 
-#ifdef HAVE_OPENCV_CONTRIB
-#  include "opencv2/contrib/contrib.hpp"
-#endif
-
 extern "C" {
 
 JNIEXPORT jint JNICALL
@@ -43,9 +39,6 @@ JNI_OnLoad(JavaVM* vm, void* )
 #endif
 #ifdef HAVE_OPENCV_ML
     init &= cv::initModule_ml();
-#endif
-    #ifdef HAVE_OPENCV_CONTRIB
-    init &= cv::initModule_contrib();
 #endif
 
     if(!init)

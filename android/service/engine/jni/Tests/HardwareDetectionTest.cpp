@@ -59,7 +59,7 @@ TEST(Parse, ParseStringWithoutSeporator)
 {
     string a = "qqqwww";
     string key;
-    string value;
+    string value;    
     EXPECT_FALSE(ParseString(a, key, value));
 }
 
@@ -108,12 +108,6 @@ TEST(Split, SplitMultiElementString)
     EXPECT_FALSE(b.find("eee") == b.end());
 }
 
-TEST(CpuCount, CheckNonZero)
-{
-    EXPECT_TRUE(GetProcessorCount() != 0);
-    EXPECT_TRUE(a.find("") == a.end());
-}
-
 TEST(GetCpuInfo, GetCpuInfo)
 {
     map<string, string> a = GetCpuInfo();
@@ -121,36 +115,20 @@ TEST(GetCpuInfo, GetCpuInfo)
     EXPECT_TRUE(a.find("") == a.end());
 }
 
+TEST(TegraDetector, Detect)
+{
+    EXPECT_TRUE(DetectTegra() != 0);
+}
+
+TEST(CpuCount, CheckNonZero)
+{
+    EXPECT_TRUE(GetProcessorCount() != 0);
+}
+
 TEST(CpuID, CheckNotEmpy)
 {
     int cpu_id = GetCpuID();
     EXPECT_NE(0, cpu_id);
-}
-
-#ifdef __i386__
-TEST(CpuID, CheckX86)
-{
-    int cpu_id = GetCpuID();
-    EXPECT_TRUE(cpu_id & ARCH_X86);
-}
-
-TEST(CpuID, CheckSSE2)
-{
-    int cpu_id = GetCpuID();
-    EXPECT_TRUE(cpu_id & FEATURES_HAS_SSE2);
-}
-#elseif __mips
-    #ifdef __SUPPORT_MIPS
-    TEST(CpuID, CheckMips)
-    {
-    int cpu_id = GetCpuID();
-    EXPECT_TRUE(cpu_id & ARCH_MIPS);
-    }
-    #endif
-#else
-TEST(TegraDetector, Detect)
-{
-    EXPECT_TRUE(DetectTegra() != 0);
 }
 
 TEST(CpuID, CheckArmV7)
@@ -175,4 +153,3 @@ TEST(PlatfromDetector, CheckTegra)
 {
     EXPECT_NE(PLATFORM_UNKNOWN, DetectKnownPlatforms());
 }
-#endif

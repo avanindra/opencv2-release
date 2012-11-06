@@ -6,8 +6,6 @@
 #ifdef HAVE_OPENCV_FEATURES2D
 #include "opencv2/features2d/features2d.hpp"
 
-#undef SIMPLEBLOB // to solve conflict with wincrypt.h on windows
-
 namespace cv
 {
 
@@ -33,23 +31,20 @@ public:
         HARRIS        = 8,
         SIMPLEBLOB    = 9,
         DENSE         = 10,
-        BRISK         = 11,
 
 
-        GRIDDETECTOR = 1000,
         GRIDRETECTOR = 1000,
 
-        GRID_FAST          = GRIDDETECTOR + FAST,
-        GRID_STAR          = GRIDDETECTOR + STAR,
-        GRID_SIFT          = GRIDDETECTOR + SIFT,
-        GRID_SURF          = GRIDDETECTOR + SURF,
-        GRID_ORB           = GRIDDETECTOR + ORB,
-        GRID_MSER          = GRIDDETECTOR + MSER,
-        GRID_GFTT          = GRIDDETECTOR + GFTT,
-        GRID_HARRIS        = GRIDDETECTOR + HARRIS,
-        GRID_SIMPLEBLOB    = GRIDDETECTOR + SIMPLEBLOB,
-        GRID_DENSE         = GRIDDETECTOR + DENSE,
-        GRID_BRISK         = GRIDDETECTOR + BRISK,
+        GRID_FAST          = GRIDRETECTOR + FAST,
+        GRID_STAR          = GRIDRETECTOR + STAR,
+        GRID_SIFT          = GRIDRETECTOR + SIFT,
+        GRID_SURF          = GRIDRETECTOR + SURF,
+        GRID_ORB           = GRIDRETECTOR + ORB,
+        GRID_MSER          = GRIDRETECTOR + MSER,
+        GRID_GFTT          = GRIDRETECTOR + GFTT,
+        GRID_HARRIS        = GRIDRETECTOR + HARRIS,
+        GRID_SIMPLEBLOB    = GRIDRETECTOR + SIMPLEBLOB,
+        GRID_DENSE         = GRIDRETECTOR + DENSE,
 
 
         PYRAMIDDETECTOR = 2000,
@@ -64,7 +59,6 @@ public:
         PYRAMID_HARRIS     = PYRAMIDDETECTOR + HARRIS,
         PYRAMID_SIMPLEBLOB = PYRAMIDDETECTOR + SIMPLEBLOB,
         PYRAMID_DENSE      = PYRAMIDDETECTOR + DENSE,
-        PYRAMID_BRISK      = PYRAMIDDETECTOR + BRISK,
 
         DYNAMICDETECTOR = 3000,
 
@@ -77,11 +71,10 @@ public:
         DYNAMIC_GFTT       = DYNAMICDETECTOR + GFTT,
         DYNAMIC_HARRIS     = DYNAMICDETECTOR + HARRIS,
         DYNAMIC_SIMPLEBLOB = DYNAMICDETECTOR + SIMPLEBLOB,
-        DYNAMIC_DENSE      = DYNAMICDETECTOR + DENSE,
-        DYNAMIC_BRISK      = DYNAMICDETECTOR + BRISK
+        DYNAMIC_DENSE      = DYNAMICDETECTOR + DENSE
     };
 
-    //supported: FAST STAR SIFT SURF ORB MSER GFTT HARRIS BRISK Grid(XXXX) Pyramid(XXXX) Dynamic(XXXX)
+    //supported: FAST STAR SIFT SURF ORB MSER GFTT HARRIS Grid(XXXX) Pyramid(XXXX) Dynamic(XXXX)
     //not supported: SimpleBlob, Dense
     CV_WRAP static javaFeatureDetector* create( int detectorType )
     {
@@ -96,10 +89,10 @@ public:
             name = "Pyramid";
             detectorType -= PYRAMIDDETECTOR;
         }
-        if (detectorType > GRIDDETECTOR)
+        if (detectorType > GRIDRETECTOR)
         {
             name = "Grid";
-            detectorType -= GRIDDETECTOR;
+            detectorType -= GRIDRETECTOR;
         }
 
         switch(detectorType)
@@ -133,9 +126,6 @@ public:
             break;
         case DENSE:
             name += "Dense";
-            break;
-        case BRISK:
-            name += "BRISK";
             break;
         default:
             CV_Error( CV_StsBadArg, "Specified feature detector type is not supported." );
@@ -205,7 +195,7 @@ public:
         matcher.addref();
         return (javaDescriptorMatcher*)((DescriptorMatcher*) matcher);
     }
-
+    
     //supported: FlannBased, BruteForce, BruteForce-L1, BruteForce-Hamming, BruteForce-HammingLUT
     CV_WRAP static javaDescriptorMatcher* create( int matcherType )
     {
@@ -275,8 +265,6 @@ public:
         SURF  = 2,
         ORB   = 3,
         BRIEF = 4,
-        BRISK = 5,
-        FREAK = 6,
 
 
         OPPONENTEXTRACTOR = 1000,
@@ -286,12 +274,10 @@ public:
         OPPONENT_SIFT  = OPPONENTEXTRACTOR + SIFT,
         OPPONENT_SURF  = OPPONENTEXTRACTOR + SURF,
         OPPONENT_ORB   = OPPONENTEXTRACTOR + ORB,
-        OPPONENT_BRIEF = OPPONENTEXTRACTOR + BRIEF,
-        OPPONENT_BRISK = OPPONENTEXTRACTOR + BRISK,
-        OPPONENT_FREAK = OPPONENTEXTRACTOR + FREAK
+        OPPONENT_BRIEF = OPPONENTEXTRACTOR + BRIEF
     };
 
-    //supported SIFT, SURF, ORB, BRIEF, BRISK, FREAK, Opponent(XXXX)
+    //supported SIFT, SURF, ORB, BRIEF, Opponent(XXXX)
     //not supported: Calonder
     CV_WRAP static javaDescriptorExtractor* create( int extractorType )
     {
@@ -316,12 +302,6 @@ public:
             break;
         case BRIEF:
             name += "BRIEF";
-            break;
-        case BRISK:
-            name += "BRISK";
-            break;
-        case FREAK:
-            name += "FREAK";
             break;
         default:
             CV_Error( CV_StsBadArg, "Specified descriptor extractor type is not supported." );
@@ -397,7 +377,7 @@ public:
         matcher.addref();
         return (javaGenericDescriptorMatcher*)((GenericDescriptorMatcher*) matcher);
     }
-
+    
     //supported: OneWay, Fern
     //unsupported: Vector
     CV_WRAP static javaGenericDescriptorMatcher* create( int matcherType )
@@ -440,7 +420,7 @@ public:
 #if 0
 //DO NOT REMOVE! The block is required for sources parser
 enum
-{
+{ 
           DRAW_OVER_OUTIMG = 1, // Output image matrix will not be created (Mat::create).
                                 // Matches will be drawn on existing content of output image.
           NOT_DRAW_SINGLE_POINTS = 2, // Single keypoints will not be drawn.
@@ -464,7 +444,7 @@ CV_EXPORTS_AS(drawMatches2) void drawMatches( const Mat& img1, const vector<KeyP
                              const vector<vector<DMatch> >& matches1to2, Mat& outImg,
                              const Scalar& matchColor=Scalar::all(-1), const Scalar& singlePointColor=Scalar::all(-1),
                              const vector<vector<char> >& matchesMask=vector<vector<char> >(), int flags=0);
-
+                             
 #endif
 
 } //cv

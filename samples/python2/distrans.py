@@ -1,25 +1,20 @@
-'''
-Distance transform sample.
+import numpy as np
+import cv2
+import cv2.cv as cv
+from common import make_cmap
 
-Usage:
-  distrans.py [<image>]
+help_message = '''USAGE: distrans.py [<image>]
 
 Keys:
   ESC   - exit
   v     - toggle voronoi mode
 '''
 
-
-import numpy as np
-import cv2
-import cv2.cv as cv
-from common import make_cmap
-
 if __name__ == '__main__':
     import sys
     try: fn = sys.argv[1]
     except: fn = '../cpp/fruits.jpg'
-    print __doc__
+    print help_message
 
     img = cv2.imread(fn, 0)
     cm = make_cmap('jet')
@@ -43,7 +38,7 @@ if __name__ == '__main__':
         global need_update
         need_update = True
 
-    cv2.namedWindow('distrans')
+    cv2.namedWindow('distrans') 
     cv2.createTrackbar('threshold', 'distrans', 60, 255, invalidate)
     update()
 
@@ -58,5 +53,5 @@ if __name__ == '__main__':
             update()
         if need_update:
             update()
-    cv2.destroyAllWindows()
-
+    cv2.destroyAllWindows() 			
+      

@@ -1,8 +1,4 @@
-#if defined _MSC_VER && _MSC_VER >= 1200
-# pragma warning (disable : 4408 4201 4100)
-#endif
-
-#if !defined CUDA_DISABLER
+#pragma warning (disable : 4408 4201 4100)
 
 #include <cstdio>
 
@@ -438,5 +434,3 @@ bool nvidia_NCV_Visualization(const std::string& test_data_path, OutputLevel out
 
     return testListerVisualize.invoke();
 }
-
-#endif /* CUDA_DISABLER */

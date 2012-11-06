@@ -129,8 +129,8 @@ Mat& ScanImageAndReduceC(Mat& I, const uchar* const table)
 
     int channels = I.channels();
 
-    int nRows = I.rows;
-    int nCols = I.cols * channels;
+    int nRows = I.rows * channels;
+    int nCols = I.cols;
 
     if (I.isContinuous())
     {

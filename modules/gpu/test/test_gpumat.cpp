@@ -40,9 +40,7 @@
 //
 //M*/
 
-#include "test_precomp.hpp"
-
-#ifdef HAVE_CUDA
+#include "precomp.hpp"
 
 namespace {
 
@@ -325,5 +323,3 @@ INSTANTIATE_TEST_CASE_P(GPU_GpuMat, ConvertTo, testing::Combine(
     WHOLE_SUBMAT));
 
 } // namespace
-
-#endif // HAVE_CUDA

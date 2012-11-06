@@ -1,27 +1,25 @@
 /*
  * Copyright 1993-2010 NVIDIA Corporation.  All rights reserved.
  *
- * NVIDIA Corporation and its licensors retain all intellectual
- * property and proprietary rights in and to this software and
- * related documentation and any modifications thereto.
- * Any use, reproduction, disclosure, or distribution of this
- * software and related documentation without an express license
+ * NVIDIA Corporation and its licensors retain all intellectual 
+ * property and proprietary rights in and to this software and 
+ * related documentation and any modifications thereto.  
+ * Any use, reproduction, disclosure, or distribution of this 
+ * software and related documentation without an express license 
  * agreement from NVIDIA Corporation is strictly prohibited.
  */
-
-#if !defined CUDA_DISABLER
 
 #include "TestCompact.h"
 
 
-TestCompact::TestCompact(std::string testName_, NCVTestSourceProvider<Ncv32u> &src_,
-                                             Ncv32u length_, Ncv32u badElem_, Ncv32u badElemPercentage_)
+TestCompact::TestCompact(std::string testName, NCVTestSourceProvider<Ncv32u> &src,
+                                             Ncv32u length, Ncv32u badElem, Ncv32u badElemPercentage)
     :
-    NCVTestProvider(testName_),
-    src(src_),
-    length(length_),
-    badElem(badElem_),
-    badElemPercentage(badElemPercentage_ > 100 ? 100 : badElemPercentage_)
+    NCVTestProvider(testName),
+    src(src),
+    length(length),
+    badElem(badElem),
+    badElemPercentage(badElemPercentage > 100 ? 100 : badElemPercentage)
 {
 }
 
@@ -129,5 +127,3 @@ bool TestCompact::deinit()
 {
     return true;
 }
-
-#endif /* CUDA_DISABLER */

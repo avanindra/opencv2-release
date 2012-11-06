@@ -2,6 +2,10 @@
 Install Callback Interface
 **************************
 .. highlight:: java
+.. module:: org.opencv.android
+    :platform: Android
+    :synopsis: Defines callback interface for package management.
+
 .. class:: InstallCallbackInterface
 
     Callback interface for package installation or update.
@@ -11,28 +15,21 @@ String getPackageName()
 
 .. method:: String getPackageName()
 
-    Get name of a package to be installed.
+    Get name of a package to be installed
 
-    :rtype: string;
-    :return: returns package name, i.e. "OpenCV Manager Service" or "OpenCV library".
+    :rtype: String
+    :return: Return package name, i.e. "OpenCV Manager Service" or "OpenCV library"
 
 void install()
 --------------
 
 .. method:: void install()
 
-    Installation of package has been approved.
+    Installation of package is approved
 
 void cancel()
 -------------
 
 .. method:: void cancel()
 
-    Installation if package has been canceled.
-
-void wait_install()
--------------------
-
-.. method:: void wait_install()
-
-    Wait for package installation.
+    Installation if package was canceled

@@ -152,9 +152,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
 
     Mat &pano_ = pano.getMatRef();
 
-#if ENABLE_LOG
     int64 t = getTickCount();
-#endif
 
     vector<Point> corners(imgs_.size());
     vector<Mat> masks_warped(imgs_.size());
@@ -203,9 +201,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
     masks.clear();
 
     LOGLN("Compositing...");
-#if ENABLE_LOG
     t = getTickCount();
-#endif
 
     Mat img_warped, img_warped_s;
     Mat dilated_mask, seam_mask, mask, mask_warped;
@@ -353,9 +349,7 @@ Stitcher::Status Stitcher::matchImages()
     full_img_sizes_.resize(imgs_.size());
 
     LOGLN("Finding features...");
-#if ENABLE_LOG
     int64 t = getTickCount();
-#endif
 
     for (size_t i = 0; i < imgs_.size(); ++i)
     {
@@ -387,16 +381,7 @@ Stitcher::Status Stitcher::matchImages()
         if (rois_.empty())
             (*features_finder_)(img, features_[i]);
         else
-        {
-            vector<Rect> rois(rois_[i].size());
-            for (size_t j = 0; j < rois_[i].size(); ++j)
-            {
-                Point tl(cvRound(rois_[i][j].x * work_scale_), cvRound(rois_[i][j].y * work_scale_));
-                Point br(cvRound(rois_[i][j].br().x * work_scale_), cvRound(rois_[i][j].br().y * work_scale_));
-                rois[j] = Rect(tl, br);
-            }
-            (*features_finder_)(img, features_[i], rois);
-        }
+            (*features_finder_)(img, features_[i], rois_[i]);
         features_[i].img_idx = (int)i;
         LOGLN("Features in image #" << i+1 << ": " << features_[i].keypoints.size());
 
@@ -412,9 +397,7 @@ Stitcher::Status Stitcher::matchImages()
     LOGLN("Finding features, time: " << ((getTickCount() - t) / getTickFrequency()) << " sec");
 
     LOG("Pairwise matching");
-#if ENABLE_LOG
     t = getTickCount();
-#endif
     (*features_matcher_)(features_, pairwise_matches_, matching_mask_);
     features_matcher_->collectGarbage();
     LOGLN("Pairwise matching, time: " << ((getTickCount() - t) / getTickFrequency()) << " sec");

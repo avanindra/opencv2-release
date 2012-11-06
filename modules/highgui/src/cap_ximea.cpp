@@ -116,12 +116,9 @@ error:
 
 void CvCaptureCAM_XIMEA::close()
 {
-    if(hmv)
-    {
-        xiStopAcquisition(hmv);
-        xiCloseDevice(hmv);
-        hmv = NULL;
-    }
+    xiStopAcquisition(hmv);
+    xiCloseDevice(hmv);
+    hmv = NULL;
 }
 
 /**********************************************************************************/

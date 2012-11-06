@@ -910,7 +910,7 @@ CvBoost::CvBoost()
 
 void CvBoost::prune( CvSlice slice )
 {
-    if( weak && weak->total > 0 )
+    if( weak )
     {
         CvSeqReader reader;
         int i, count = cvSliceLength( slice, weak );
@@ -1076,15 +1076,11 @@ CvBoost::train( const CvMat* _train_data, int _tflag,
             break;
     }
 
-    if(weak->total > 0)
-    {
-        get_active_vars(); // recompute active_vars* maps and condensed_idx's in the splits.
-        data->is_classifier = true;
-        data->free_train_data();
-        ok = true;
-    }
-    else
-        clear();
+    get_active_vars(); // recompute active_vars* maps and condensed_idx's in the splits.
+    data->is_classifier = true;
+    ok = true;
+
+    data->free_train_data();
 
     __END__;
 
@@ -1900,7 +1896,7 @@ void CvBoost::write_params( CvFileStorage* fs ) const
     else
         cvWriteInt( fs, "splitting_criteria", params.split_criteria );
 
-    cvWriteInt( fs, "ntrees", weak->total );
+	cvWriteInt( fs, "ntrees", weak->total );
     cvWriteReal( fs, "weight_trimming_rate", params.weight_trim_rate );
 
     data->write_params( fs );
@@ -2147,5 +2143,3 @@ CvBoost::predict( const Mat& _sample, const Mat& _missing,
 }
 
 /* End of file. */
-
-

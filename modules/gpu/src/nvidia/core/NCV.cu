@@ -75,8 +75,6 @@ void ncvSetDebugOutputHandler(NCVDebugOutputHandler *func)
     debugOutputHandler = func;
 }
 
-#if !defined CUDA_DISABLER
-
 
 //==============================================================================
 //
@@ -907,5 +905,3 @@ NCVStatus ncvDrawRects_32u_device(Ncv32u *d_dst,
 {
     return drawRectsWrapperDevice(d_dst, dstStride, dstWidth, dstHeight, d_rects, numRects, color, cuStream);
 }
-
-#endif /* CUDA_DISABLER */

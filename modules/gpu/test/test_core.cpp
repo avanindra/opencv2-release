@@ -39,9 +39,7 @@
 //
 //M*/
 
-#include "test_precomp.hpp"
-
-#ifdef HAVE_CUDA
+#include "precomp.hpp"
 
 namespace {
 
@@ -1482,12 +1480,12 @@ INSTANTIATE_TEST_CASE_P(GPU_Core, Exp, testing::Combine(
     WHOLE_SUBMAT));
 
 ////////////////////////////////////////////////////////////////////////////////
-// Compare_Array
+// compare
 
 CV_ENUM(CmpCode, cv::CMP_EQ, cv::CMP_GT, cv::CMP_GE, cv::CMP_LT, cv::CMP_LE, cv::CMP_NE)
 #define ALL_CMP_CODES testing::Values(CmpCode(cv::CMP_EQ), CmpCode(cv::CMP_NE), CmpCode(cv::CMP_GT), CmpCode(cv::CMP_GE), CmpCode(cv::CMP_LT), CmpCode(cv::CMP_LE))
 
-PARAM_TEST_CASE(Compare_Array, cv::gpu::DeviceInfo, cv::Size, MatDepth, CmpCode, UseRoi)
+PARAM_TEST_CASE(Compare, cv::gpu::DeviceInfo, cv::Size, MatDepth, CmpCode, UseRoi)
 {
     cv::gpu::DeviceInfo devInfo;
     cv::Size size;
@@ -1507,7 +1505,7 @@ PARAM_TEST_CASE(Compare_Array, cv::gpu::DeviceInfo, cv::Size, MatDepth, CmpCode,
     }
 };
 
-TEST_P(Compare_Array, Accuracy)
+TEST_P(Compare, Accuracy)
 {
     cv::Mat src1 = randomMat(size, depth);
     cv::Mat src2 = randomMat(size, depth);
@@ -1536,7 +1534,7 @@ TEST_P(Compare_Array, Accuracy)
     }
 }
 
-INSTANTIATE_TEST_CASE_P(GPU_Core, Compare_Array, testing::Combine(
+INSTANTIATE_TEST_CASE_P(GPU_Core, Compare, testing::Combine(
     ALL_DEVICES,
     DIFFERENT_SIZES,
     ALL_DEPTH,
@@ -1815,10 +1813,10 @@ TEST_P(LShift, Accuracy)
     cv::Scalar_<int> val = randomScalar(0.0, 8.0);
 
     cv::gpu::GpuMat dst = createMat(size, type, useRoi);
-    cv::gpu::lshift(loadMat(src, useRoi), val, dst);
+    cv::gpu::rshift(loadMat(src, useRoi), val, dst);
 
     cv::Mat dst_gold;
-    lhiftGold(src, val, dst_gold);
+    rhiftGold(src, val, dst_gold);
 
     EXPECT_MAT_NEAR(dst_gold, dst, 0.0);
 }
@@ -3256,7 +3254,7 @@ TEST_P(Reduce, Rows)
     cv::Mat dst_gold;
     cv::reduce(src, dst_gold, 0, reduceOp, dst_depth);
 
-    EXPECT_MAT_NEAR(dst_gold, dst, dst_depth < CV_32F ? 0.0 : 0.02);
+    EXPECT_MAT_NEAR(dst_gold, dst, dst_depth < CV_32F ? 0.0 : 1e-2);
 }
 
 TEST_P(Reduce, Cols)
@@ -3272,7 +3270,7 @@ TEST_P(Reduce, Cols)
     dst_gold.rows = 1;
     dst_gold.step = dst_gold.cols * dst_gold.elemSize();
 
-    EXPECT_MAT_NEAR(dst_gold, dst, dst_depth < CV_32F ? 0.0 : 0.02);
+    EXPECT_MAT_NEAR(dst_gold, dst, dst_depth < CV_32F ? 0.0 : 1e-2);
 }
 
 INSTANTIATE_TEST_CASE_P(GPU_Core, Reduce, testing::Combine(
@@ -3287,5 +3285,3 @@ INSTANTIATE_TEST_CASE_P(GPU_Core, Reduce, testing::Combine(
     WHOLE_SUBMAT));
 
 } // namespace
-
-#endif // HAVE_CUDA

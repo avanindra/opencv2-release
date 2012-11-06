@@ -3,7 +3,7 @@
 	<name>tests</name>
 	<comment></comment>
 	<projects>
-		<project>OpenCVEngineService</project>
+		<project>JavaService</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

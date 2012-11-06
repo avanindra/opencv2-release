@@ -1,18 +1,17 @@
 import os, sys, re, string, glob
-from optparse import OptionParser
+allmodules = ["core", "flann", "imgproc", "ml", "highgui", "video", "features2d", "calib3d", "objdetect", "legacy", "contrib", "gpu", "androidcamera", "haartraining", "java", "python", "stitching", "traincascade", "ts", "photo", "videostab"]
+verbose = False
+show_warnings = True
+show_errors = True
 
 class JavadocGenerator(object):
-    def __init__(self, definitions = {}, modules= [], javadoc_marker = "//javadoc:"):
+    def __init__(self, definitions = {}, javadoc_marker = "//javadoc:"):
         self.definitions = definitions
         self.javadoc_marker = javadoc_marker
         self.markers_processed = 0
         self.markers_documented = 0
         self.params_documented = 0
         self.params_undocumented = 0
-        self.known_modules = modules
-        self.verbose = False
-        self.show_warnings = True
-        self.show_errors = True
 
     def parceJavadocMarker(self, line):
         assert line.lstrip().startswith(self.javadoc_marker)
@@ -36,7 +35,7 @@ class JavadocGenerator(object):
         inf = open(infile, "rt")
         outf = open(outfile, "wt")
         module = os.path.splitext(os.path.basename(infile))[0].split("+")[0]
-        if module not in self.known_modules:
+        if module not in allmodules:
             module = "unknown"
         try:
             for l in inf.readlines():
@@ -48,14 +47,14 @@ class JavadocGenerator(object):
                     decl = self.definitions.get(marker[0],None)
                     if decl:
                         javadoc = self.makeJavadoc(decl, marker[2])
-                        if self.verbose:
+                        if verbose:
                             print
                             print "Javadoc for \"%s\" File: %s (line %s)" % (decl["name"], decl["file"], decl["line"])
                             print javadoc
                         for line in javadoc.split("\n"):
                             outf.write(marker[1] + line + "\n")
                         self.markers_documented += 1
-                    elif self.show_errors:
+                    elif show_errors:
                         print >> sys.stderr, "gen_javadoc error: could not find documentation for %s (module: %s)" % (l.lstrip()[len(self.javadoc_marker):-1].strip(), module)
                 else:
                     outf.write(org.replace("\t", "    ").rstrip()+"\n")
@@ -177,11 +176,11 @@ class JavadocGenerator(object):
             doc += prefix + self.ReformatForJavadoc(decl["brief"])
             prefix = " *\n"
         elif "long" not in decl:
-            if self.show_warnings:
+            if show_warnings:
                 print >> sys.stderr, "gen_javadoc warning: no description for " + decl_type + " \"%s\" File: %s (line %s)" % (func["name"], func["file"], func["line"])
             doc += prefix + self.ReformatForJavadoc("This " + decl_type + " is undocumented")
             prefix = " *\n"
-
+    
         # long goes after brief
         if "long" in decl:
             doc += prefix  + self.ReformatForJavadoc(decl["long"])
@@ -194,7 +193,7 @@ class JavadocGenerator(object):
                 arg_doc = documented_params.get(arg, None)
                 if not arg_doc:
                     arg_doc = "a " + arg
-                    if self.show_warnings:
+                    if show_warnings:
                         print >> sys.stderr, "gen_javadoc warning: parameter \"%s\" of \"%s\" is undocumented. File: %s (line %s)" % (arg, decl["name"], decl["file"], decl["line"])
                     self.params_undocumented += 1
                 else:
@@ -222,6 +221,7 @@ class JavadocGenerator(object):
         return (doc + " */").replace("::",".")
 
     def printSummary(self):
+        print
         print "Javadoc Generator Summary:"
         print "  Total markers:        %s" % self.markers_processed
         print "  Undocumented markers: %s" % (self.markers_processed - self.markers_documented)
@@ -233,41 +233,29 @@ class JavadocGenerator(object):
         print
 
 if __name__ == "__main__":
-
+    if len(sys.argv) < 2:
+        print "Usage:\n", os.path.basename(sys.argv[0]), " <input dir1> [<input dir2> [...]]"
+        exit(0)
+   
     selfpath = os.path.dirname(os.path.abspath(sys.argv[0]))
     hdr_parser_path = os.path.join(selfpath, "../../python/src2")
-
+    
     sys.path.append(selfpath)
     sys.path.append(hdr_parser_path)
     import hdr_parser
     import rst_parser
 
-    parser = OptionParser()
-    parser.add_option("-v", "--verbose", dest="verbose", help="Print verbose log to stdout", action="store_true", default=False)
-    parser.add_option("", "--no-warnings", dest="warnings", help="Hide warning messages", action="store_false", default=True)
-    parser.add_option("", "--no-errors", dest="errors", help="Hide error messages", action="store_false", default=True)
-    parser.add_option("", "--modules", dest="modules", help="comma-separated list of modules to generate comments", metavar="MODS", default=",".join(rst_parser.allmodules))
-
-    (options, args) = parser.parse_args(sys.argv)
-    options.modules = options.modules.split(",")
-
-    if len(args) < 2 or len(options.modules) < 1:
-        parser.print_help()
-        exit(0)
-
+    print "Parsing documentation..."
     parser = rst_parser.RstParser(hdr_parser.CppHeaderParser())
-    for m in options.modules:
+    for m in allmodules:
         parser.parse(m, os.path.join(selfpath, "../../" + m))
-
+        
     parser.printSummary()
 
-    generator = JavadocGenerator(parser.definitions, options.modules)
-    generator.verbose = options.verbose
-    generator.show_warnings = options.warnings
-    generator.show_errors = options.errors
-
-    for path in args:
-        folder = os.path.abspath(path)
+    print "Generating javadoc comments..."
+    generator = JavadocGenerator(parser.definitions)
+    for i in range(1, len(sys.argv)):
+        folder = os.path.abspath(sys.argv[i])
         for jfile in [f for f in glob.glob(os.path.join(folder,"*.java")) if not f.endswith("-jdoc.java")]:
             outfile = os.path.abspath(os.path.basename(jfile).replace(".java", "-jdoc.java"))
             generator.document(jfile, outfile)

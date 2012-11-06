@@ -10,8 +10,7 @@ endif()
 
 set(OPENCV_MODULE_IS_PART_OF_WORLD FALSE)
 
-ocv_add_module(ts opencv_core opencv_features2d)
-
+ocv_add_module(ts opencv_core)
 ocv_glob_module_sources()
 ocv_module_include_directories()
 ocv_create_module()

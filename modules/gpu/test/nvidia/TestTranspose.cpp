@@ -1,15 +1,13 @@
 /*
  * Copyright 1993-2010 NVIDIA Corporation.  All rights reserved.
  *
- * NVIDIA Corporation and its licensors retain all intellectual
- * property and proprietary rights in and to this software and
- * related documentation and any modifications thereto.
- * Any use, reproduction, disclosure, or distribution of this
- * software and related documentation without an express license
+ * NVIDIA Corporation and its licensors retain all intellectual 
+ * property and proprietary rights in and to this software and 
+ * related documentation and any modifications thereto.  
+ * Any use, reproduction, disclosure, or distribution of this 
+ * software and related documentation without an express license 
  * agreement from NVIDIA Corporation is strictly prohibited.
  */
-
-#if !defined CUDA_DISABLER
 
 #include <math.h>
 
@@ -17,13 +15,13 @@
 
 
 template <class T>
-TestTranspose<T>::TestTranspose(std::string testName_, NCVTestSourceProvider<T> &src_,
-                                Ncv32u width_, Ncv32u height_)
+TestTranspose<T>::TestTranspose(std::string testName, NCVTestSourceProvider<T> &src,
+                                Ncv32u width, Ncv32u height)
     :
-    NCVTestProvider(testName_),
-    src(src_),
-    width(width_),
-    height(height_)
+    NCVTestProvider(testName),
+    src(src),
+    width(width),
+    height(height)
 {
 }
 
@@ -148,5 +146,3 @@ bool TestTranspose<T>::deinit()
 
 template class TestTranspose<Ncv32u>;
 template class TestTranspose<Ncv64u>;
-
-#endif /* CUDA_DISABLER */

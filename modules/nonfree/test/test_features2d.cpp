@@ -1079,10 +1079,3 @@ TEST(Features2d_BruteForceDescriptorMatcher_knnMatch, regression)
         }
     }
 }
-
-/*TEST(Features2d_DescriptorExtractorParamTest, regression)
-{
-    Ptr<DescriptorExtractor> s = DescriptorExtractor::create("SURF");
-    ASSERT_STREQ(s->paramHelp("extended").c_str(), "");
-}
-*/

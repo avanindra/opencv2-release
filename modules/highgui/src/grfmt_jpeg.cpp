@@ -382,11 +382,12 @@ bool  JpegDecoder::readData( Mat& img )
     bool result = false;
     int step = (int)img.step;
     bool color = img.channels() > 1;
+    JpegState* state = (JpegState*)m_state;
 
-    if( m_state && m_width && m_height )
+    if( state && m_width && m_height )
     {
-        jpeg_decompress_struct* cinfo = &((JpegState*)m_state)->cinfo;
-        JpegErrorMgr* jerr = &((JpegState*)m_state)->jerr;
+        jpeg_decompress_struct* cinfo = &state->cinfo;
+        JpegErrorMgr* jerr = &state->jerr;
         JSAMPARRAY buffer = 0;
 
         if( setjmp( jerr->setjmp_buffer ) == 0 )
