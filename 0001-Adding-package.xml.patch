@@ -1,7 +1,7 @@
-From 340cec1b7d4ef33833a5b1eb6eacf9a4a0119ca0 Mon Sep 17 00:00:00 2001
+From d12a8eb3cff59c2ace56986cc7447c29aab8d8bc Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Wed, 3 Oct 2012 08:31:53 -0700
-Subject: [PATCH 1/2] Adding package.xml
+Subject: [PATCH 1/6] Adding package.xml
 
 ---
  package.xml |   42 ++++++++++++++++++++++++++++++++++++++++++
@@ -57,5 +57,5 @@ index 0000000..c1a0ea6
 +  <run_depend>python</run_depend>
 +</package>
 -- 
-1.7.9.5
+1.7.10.4
 
