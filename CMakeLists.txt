@@ -58,6 +58,10 @@ if(DEFINED CMAKE_BUILD_TYPE AND CMAKE_VERSION VERSION_GREATER "2.8")
   set_property( CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES} )
 endif()
 
+project(opencv2)
+find_package(catkin REQUIRED)
+catkin_package()
+
 project(OpenCV CXX C)
 
 include(cmake/OpenCVUtils.cmake)
