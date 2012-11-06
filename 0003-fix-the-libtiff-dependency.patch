@@ -1,0 +1,34 @@
+From 5d0444c3a7efd404aff86be8d9435e9e92e5d629 Mon Sep 17 00:00:00 2001
+From: Vincent Rabaud <vrabaud@willowgarage.com>
+Date: Tue, 23 Oct 2012 20:11:30 -0700
+Subject: [PATCH 3/6] fix the libtiff dependency
+
+---
+ package.xml |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/package.xml b/package.xml
+index c1a0ea6..43c7656 100644
+--- a/package.xml
++++ b/package.xml
+@@ -20,7 +20,7 @@
+   <build_depend>jasper</build_depend>
+   <build_depend>libjpeg</build_depend>
+   <build_depend>libpng12-dev</build_depend>
+-  <build_depend>libtiff4-dev</build_depend>
++  <build_depend>libtiff-dev</build_depend>
+   <build_depend>zlib</build_depend>
+   <build_depend>libv4l-dev</build_depend>
+   <build_depend>python</build_depend>
+@@ -35,7 +35,7 @@
+   <run_depend>jasper</run_depend>
+   <run_depend>libjpeg</run_depend>
+   <run_depend>libpng12-dev</run_depend>
+-  <run_depend>libtiff4-dev</run_depend>
++  <run_depend>libtiff-dev</run_depend>
+   <run_depend>zlib</run_depend>
+   <run_depend>libv4l-dev</run_depend>
+   <run_depend>python</run_depend>
+-- 
+1.7.10.4
+

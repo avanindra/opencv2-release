@@ -1,0 +1,27 @@
+From 461a83252fc59ca9c9797e2fde1010fccb295b87 Mon Sep 17 00:00:00 2001
+From: Vincent Rabaud <vrabaud@willowgarage.com>
+Date: Mon, 5 Nov 2012 18:00:05 -0800
+Subject: [PATCH 4/6] call catkin_package
+
+---
+ CMakeLists.txt |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0502fb8..7a0f1a9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -58,6 +58,10 @@ if(DEFINED CMAKE_BUILD_TYPE AND CMAKE_VERSION VERSION_GREATER "2.8")
+   set_property( CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES} )
+ endif()
+ 
++project(opencv2)
++find_package(catkin REQUIRED)
++catkin_package()
++
+ project(OpenCV CXX C)
+ 
+ include(cmake/OpenCVUtils.cmake)
+-- 
+1.7.10.4
+
