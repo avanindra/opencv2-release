@@ -1,7 +1,7 @@
 From 47b4348e547c4b4ecfd636fb93c6c8bda0da1fb0 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Mon, 5 Nov 2012 18:03:15 -0800
-Subject: [PATCH 5/6] remove include_directories call
+Subject: [PATCH 5/7] remove include_directories call
 
 ---
  cmake/templates/OpenCVConfig.cmake.in |    1 -
@@ -20,5 +20,5 @@ index 981bb7a..cbad935 100644
  # ======================================================
  # Link directories to add to the user project:
 -- 
-1.7.10.4
+1.7.10.2 (Apple Git-33)
 

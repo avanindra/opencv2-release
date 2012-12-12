@@ -1,0 +1,26 @@
+From ba4dafb638a5c0976a86edd0aeac2a60694cf782 Mon Sep 17 00:00:00 2001
+From: William Woodall <wjwwood@gmail.com>
+Date: Tue, 11 Dec 2012 19:50:01 -0800
+Subject: [PATCH 7/7] Adding build_type as cmake
+
+---
+ package.xml |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/package.xml b/package.xml
+index d52f2d7..eb030a7 100644
+--- a/package.xml
++++ b/package.xml
+@@ -39,4 +39,9 @@
+   <run_depend>zlib</run_depend>
+   <run_depend>libv4l-dev</run_depend>
+   <run_depend>python</run_depend>
++
++  <export>
++      <build_type>cmake</build_type>
++  </export>
++
+ </package>
+-- 
+1.7.10.2 (Apple Git-33)
+

@@ -1,7 +1,7 @@
 From 461a83252fc59ca9c9797e2fde1010fccb295b87 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Mon, 5 Nov 2012 18:00:05 -0800
-Subject: [PATCH 4/6] call catkin_package
+Subject: [PATCH 4/7] call catkin_package
 
 ---
  CMakeLists.txt |    4 ++++
@@ -23,5 +23,5 @@ index 0502fb8..7a0f1a9 100644
  
  include(cmake/OpenCVUtils.cmake)
 -- 
-1.7.10.4
+1.7.10.2 (Apple Git-33)
 

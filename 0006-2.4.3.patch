@@ -1,7 +1,7 @@
 From 20b189ea27dc20bbd31bd5733235332683bc87b2 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Mon, 5 Nov 2012 18:05:53 -0800
-Subject: [PATCH 6/6] 2.4.3
+Subject: [PATCH 6/7] 2.4.3
 
 ---
  package.xml |    2 +-
@@ -21,5 +21,5 @@ index 43c7656..d52f2d7 100644
    <maintainer email="vrabaud@willowgarage.com">Vincent Rabaud</maintainer>
    <license>BSD</license>
 -- 
-1.7.10.4
+1.7.10.2 (Apple Git-33)
 

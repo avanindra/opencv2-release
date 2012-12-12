@@ -1,7 +1,7 @@
 From 7bea86a56aec7357bc336279e31b39b50d8e2722 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Wed, 3 Oct 2012 08:47:14 -0700
-Subject: [PATCH 2/6] apply the patch and add the custom rules file
+Subject: [PATCH 2/7] apply the patch and add the custom rules file
 
 ---
  cmake/templates/opencv-XXX.pc.cmake.in |    3 ++-
@@ -65,5 +65,5 @@ index 0000000..ff50b72
 +                -DCATKIN_BUILD_BINARY_PACKAGE="1" \
 +		$(CMAKE_FLAGS)
 -- 
-1.7.10.4
+1.7.10.2 (Apple Git-33)
 
