@@ -65,5 +65,5 @@ index 0000000..ff50b72
 +                -DCATKIN_BUILD_BINARY_PACKAGE="1" \
 +		$(CMAKE_FLAGS)
 -- 
-1.7.10.2 (Apple Git-33)
+1.7.9.5
 

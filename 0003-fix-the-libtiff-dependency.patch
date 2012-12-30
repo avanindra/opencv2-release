@@ -30,5 +30,5 @@ index c1a0ea6..43c7656 100644
    <run_depend>libv4l-dev</run_depend>
    <run_depend>python</run_depend>
 -- 
-1.7.10.2 (Apple Git-33)
+1.7.9.5
 
