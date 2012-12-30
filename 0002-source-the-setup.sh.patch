@@ -1,4 +1,4 @@
-From c6d233a045d6d3f6c07d56c4b0d64d04f517273c Mon Sep 17 00:00:00 2001
+From 69b8572e311211be6f205456fd9b5973cc740a13 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Fri, 26 Oct 2012 11:41:11 -0700
 Subject: [PATCH 2/2] source the setup.sh
@@ -20,5 +20,5 @@ index 14c713e..e086a54 100755
  		-DCMAKE_INSTALL_PREFIX="/opt/ros/groovy" \
  		-DCMAKE_PREFIX_PATH="/opt/ros/groovy" \
 -- 
-1.7.10.4
+1.7.9.5
 

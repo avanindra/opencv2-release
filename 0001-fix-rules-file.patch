@@ -1,4 +1,4 @@
-From 2f06504451b3857290e3e2fb4edbbc79c7330e81 Mon Sep 17 00:00:00 2001
+From 7bad7db15b9023a13eb470ded420fb62b993abf6 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Tue, 23 Oct 2012 20:29:42 -0700
 Subject: [PATCH 1/2] fix rules file
@@ -104,5 +104,5 @@ index cdc277a..14c713e 100755
 +		$(CMAKE_FLAGS)
 +
 -- 
-1.7.10.4
+1.7.9.5
 
