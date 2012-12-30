@@ -39,4 +39,9 @@
   <run_depend>zlib</run_depend>
   <run_depend>libv4l-dev</run_depend>
   <run_depend>python</run_depend>
+
+  <export>
+      <build_type>cmake</build_type>
+  </export>
+
 </package>
