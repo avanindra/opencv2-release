@@ -58,10 +58,6 @@ if(DEFINED CMAKE_BUILD_TYPE AND CMAKE_VERSION VERSION_GREATER "2.8")
   set_property( CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES} )
 endif()
 
-project(opencv2)
-find_package(catkin REQUIRED)
-catkin_package()
-
 project(OpenCV CXX C)
 
 include(cmake/OpenCVUtils.cmake)
@@ -463,7 +459,7 @@ if(BUILD_EXAMPLES OR BUILD_ANDROID_EXAMPLES OR INSTALL_PYTHON_EXAMPLES)
   add_subdirectory(samples)
 endif()
 
-if(BUILD_ANDROID_SERVICE)
+if(ANDROID)
   add_subdirectory(android/service)
 endif()
 
@@ -471,7 +467,7 @@ if(BUILD_ANDROID_PACKAGE)
   add_subdirectory(android/package)
 endif()
 
-if (ANDROID AND NOT BUILD_ANDROID_SERVICE AND NOT BUILD_ANDROID_PACKAGE AND NOT BUILD_CAMERA_WRAPER)
+if (ANDROID)
   add_subdirectory(android/libinfo)
 endif()
 
@@ -569,6 +565,7 @@ if(ANDROID)
   status("")
   status("  Android: ")
   status("    Android ABI:" ${ANDROID_ABI})
+  status("    STL type:" ${ANDROID_STL})
   status("    Native API level:" android-${ANDROID_NATIVE_API_LEVEL})
   status("    SDK target:" "${ANDROID_SDK_TARGET}")
   if(BUILD_WITH_ANDROID_NDK)
