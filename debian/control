@@ -1,0 +1,12 @@
+Source: ros-groovy-opencv2
+Section: misc
+Priority: extra
+Maintainer: Vincent Rabaud <vrabaud@willowgarage.com>
+Build-Depends: debhelper (>= 7.0.50~), python-sphinx,libv4l-dev,texlive-latex-base,ros-groovy-catkin,ffmpeg,libavcodec-dev,libavformat-dev,libavutil-dev,libswscale-dev,libjpeg-dev,libtiff4-dev,zlib1g-dev,python-numpy,libgtk2.0-dev,texlive-fonts-recommended,texlive-latex-extra,libjasper-dev,python-support,python-dev,texlive-fonts-extra,cmake,libpng12-dev,texlive-latex-recommended
+Homepage: http://opencvg.org
+Standards-Version: 3.9.2
+
+Package: ros-groovy-opencv2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libv4l-dev,ffmpeg,libavcodec-dev,libavformat-dev,libavutil-dev,libswscale-dev,libjpeg-dev,zlib1g-dev,python-numpy,libgtk2.0-dev,python-dev,libjasper-dev,python-support,libpng12-dev,libtiff4-dev
+Description: OpenCV
