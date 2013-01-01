@@ -1,4 +1,4 @@
-From 692aefbece65f571b7d693ebbf68abe16df31f57 Mon Sep 17 00:00:00 2001
+From 836decf182f06cd19c657818c716cb9ed0c89824 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Tue, 1 Jan 2013 11:40:04 +0100
 Subject: [PATCH 3/4] build the docs
