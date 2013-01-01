@@ -1,0 +1,36 @@
+From 9d6b79c6d4fb9ffde94397e15575f5bb2c7b877d Mon Sep 17 00:00:00 2001
+From: Vincent Rabaud <vrabaud@willowgarage.com>
+Date: Tue, 1 Jan 2013 12:34:45 +0100
+Subject: [PATCH 4/4] do not build the docs this way
+
+---
+ debian/rules |    7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/debian/rules b/debian/rules
+index 7db68b8..181a405 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -17,9 +17,10 @@ CMAKE_FLAGS = \
+ 	-DENABLE_SSE3=ON \
+ 	-DENABLE_SSE42=OFF \
+ 	-DENABLE_SSE41=OFF \
+-	-DUSE_FAST_MATH=OFF \
++	-DENABLE_FAST_MATH=OFF \
+ 	-DBUILD_EXAMPLES=OFF \
+ 	-DBUILD_DOCS=ON \
++	-DBUILD_PERF_TESTS=OFF \
+ 	-DBUILD_TESTS=OFF \
+ 	-DBUILD_NEW_PYTHON_SUPPORT=ON \
+ 	-DWITH_V4L=ON \
+@@ -35,7 +36,3 @@ override_dh_auto_configure:
+ 		-DCMAKE_PREFIX_PATH="/opt/ros/groovy" \
+ 		-DCATKIN_BUILD_BINARY_PACKAGE="1" \
+ 		$(CMAKE_FLAGS)
+-
+-override_dh_auto_build:
+-	if [ -f "/opt/ros/groovy/setup.sh" ]; then . "/opt/ros/groovy/setup.sh"; fi && \
+-	dh_auto_build && make docs
+-- 
+1.7.9.5
+

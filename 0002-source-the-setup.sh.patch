@@ -1,7 +1,7 @@
-From e9061078d11d5d2471f3245b6b9b7b8a877ade39 Mon Sep 17 00:00:00 2001
+From a316baebf5bfdda7d03833cf87823ce8726a0df6 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Fri, 26 Oct 2012 11:41:11 -0700
-Subject: [PATCH 2/3] source the setup.sh
+Subject: [PATCH 2/4] source the setup.sh
 
 ---
  debian/rules |    1 +
