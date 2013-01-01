@@ -1,7 +1,7 @@
-From 8901e509406b301864ce3322c2d66d7177647a2c Mon Sep 17 00:00:00 2001
+From 01c78c17b83eb15e8d8c3a843dec488ef4461466 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Tue, 1 Jan 2013 11:40:04 +0100
-Subject: [PATCH 3/3] build the docs
+Subject: [PATCH 3/4] build the docs
 
 ---
  debian/rules |    3 +++
