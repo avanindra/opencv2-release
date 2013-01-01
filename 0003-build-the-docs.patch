@@ -1,0 +1,23 @@
+From bb0c34c0253b857e3f8a1a117e0764a2f0e2ad46 Mon Sep 17 00:00:00 2001
+From: Vincent Rabaud <vrabaud@willowgarage.com>
+Date: Tue, 1 Jan 2013 11:39:45 +0100
+Subject: [PATCH 3/3] build the docs
+
+---
+ debian/rules |    3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/debian/rules b/debian/rules
+index e086a54..7db68b8 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -36,3 +36,6 @@ override_dh_auto_configure:
+ 		-DCATKIN_BUILD_BINARY_PACKAGE="1" \
+ 		$(CMAKE_FLAGS)
+ 
++override_dh_auto_build:
++	if [ -f "/opt/ros/groovy/setup.sh" ]; then . "/opt/ros/groovy/setup.sh"; fi && \
++	dh_auto_build && make docs
+-- 
+1.7.9.5
+
