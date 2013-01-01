@@ -1,0 +1,26 @@
+From 767c4d6b3b588aa793b3cc9384fbf1b3d5f160c9 Mon Sep 17 00:00:00 2001
+From: Vincent Rabaud <vrabaud@willowgarage.com>
+Date: Tue, 1 Jan 2013 15:09:19 +0100
+Subject: [PATCH 5/5] do not build docs on Oneiric as there is a bug in
+ docutils .....
+
+---
+ debian/rules |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/debian/rules b/debian/rules
+index 181a405..826b933 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -19,7 +19,7 @@ CMAKE_FLAGS = \
+ 	-DENABLE_SSE41=OFF \
+ 	-DENABLE_FAST_MATH=OFF \
+ 	-DBUILD_EXAMPLES=OFF \
+-	-DBUILD_DOCS=ON \
++	-DBUILD_DOCS=OFF \
+ 	-DBUILD_PERF_TESTS=OFF \
+ 	-DBUILD_TESTS=OFF \
+ 	-DBUILD_NEW_PYTHON_SUPPORT=ON \
+-- 
+1.7.9.5
+
