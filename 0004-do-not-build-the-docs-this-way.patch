@@ -1,4 +1,4 @@
-From c4812fad78d4b71dac8e2992c6c8d185ab8825ba Mon Sep 17 00:00:00 2001
+From baf0c84bf10d43ca98c457743f75efcc11cca7b4 Mon Sep 17 00:00:00 2001
 From: Vincent Rabaud <vrabaud@willowgarage.com>
 Date: Tue, 1 Jan 2013 12:34:07 +0100
 Subject: [PATCH 4/4] do not build the docs this way
